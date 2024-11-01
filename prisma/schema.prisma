@@ -1,7 +1,8 @@
 datasource db {
   provider = "mongodb"
-  url      = env("DATABASE_URL")
+  url      = "mongodb+srv://erenoiz2w1:HN6zAWz5FmLvLz5g@veltura.oyzyg.mongodb.net/veltura_database?retryWrites=true&w=majority&appName=VELTURA"
 }
+
 
 generator client {
   provider = "prisma-client-js"
