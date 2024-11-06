@@ -1,66 +1,64 @@
 'use client'
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react"
 
 declare global {
   interface Window {
     Telegram?: {
       WebApp: {
-        ready: () => void;
-        expand: () => void;
+        ready: () => void
+        expand: () => void
         initDataUnsafe: {
           user?: {
-            id: number;
-            first_name?: string;
-            username?: string;
-            last_name?: string;
-          };
-        };
-      };
-    };
+            id: number
+            first_name?: string
+            username?: string
+            last_name?: string
+          }
+        }
+      }
+    }
   }
 }
 
 interface User {
-  id: string;
-  telegramId: number;
-  username?: string;
-  firstName?: string;
-  lastName?: string;
-  points: number;
-  createdAt: Date;
-  updatedAt: Date;
+  id: string
+  telegramId: number
+  username?: string
+  firstName?: string
+  lastName?: string
+  points: number
+  createdAt: Date
+  updatedAt: Date
 }
 
-const App: React.FC = () => {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('farm');
-  const [powerLevel, setPowerLevel] = useState(1);
-  const [mounted, setMounted] = useState(false);
-  const [farmingPoints, setFarmingPoints] = useState(0);
-  const [lastClickTime, setLastClickTime] = useState(Date.now());
+export default function Page() {
+  const [user, setUser] = useState<User | null>(null)
+  const [mounted, setMounted] = useState(false)
+  const [powerLevel, setPowerLevel] = useState(1)
+  const [farmingPoints, setFarmingPoints] = useState(0)
+  const [lastClickTime, setLastClickTime] = useState(Date.now())
+  const [activeTab, setActiveTab] = useState('farm')
 
   useEffect(() => {
-    setMounted(true);
+    setMounted(true)
     
     if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
-      const tg = window.Telegram.WebApp;
-      tg.ready();
-      tg.expand();
+      const tg = window.Telegram.WebApp
+      tg.ready()
+      tg.expand()
 
-      const initData = tg.initDataUnsafe.user;
+      const initData = tg.initDataUnsafe.user
       if (initData) {
         fetchUserData({
           id: initData.id,
           first_name: initData.first_name,
           username: initData.username,
           last_name: initData.last_name
-        });
+        })
       }
     }
-    setIsLoading(false);
-  }, []);
+  }, [])
 
   const fetchUserData = async (telegramUser: any) => {
     try {
@@ -68,23 +66,23 @@ const App: React.FC = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(telegramUser),
-      });
-      const data = await response.json();
-      setUser(data);
+      })
+      const data = await response.json()
+      setUser(data)
     } catch (error) {
-      console.error('Failed to fetch user data:', error);
+      console.error('Failed to fetch user data:', error)
     }
-  };
+  }
 
   const handleFarming = async () => {
-    if (!user) return;
+    if (!user) return
 
-    const currentTime = Date.now();
-    const timeDiff = currentTime - lastClickTime;
+    const currentTime = Date.now()
+    const timeDiff = currentTime - lastClickTime
     
-    if (timeDiff < 1000) return; // Prevent rapid clicking
+    if (timeDiff < 1000) return
 
-    const pointsToAdd = powerLevel * 1;
+    const pointsToAdd = powerLevel * 1
     
     try {
       const response = await fetch('/api/farm', {
@@ -94,41 +92,32 @@ const App: React.FC = () => {
           userId: user.id,
           points: pointsToAdd
         }),
-      });
+      })
 
       if (response.ok) {
         setUser(prev => prev ? {
           ...prev,
           points: prev.points + pointsToAdd
-        } : null);
-        setFarmingPoints(prev => prev + pointsToAdd);
-        showFarmingAnimation(pointsToAdd);
+        } : null)
+        setFarmingPoints(prev => prev + pointsToAdd)
+        showFarmingAnimation(pointsToAdd)
       }
     } catch (error) {
-      console.error('Farming failed:', error);
+      console.error('Farming failed:', error)
     }
 
-    setLastClickTime(currentTime);
-  };
+    setLastClickTime(currentTime)
+  }
 
   const showFarmingAnimation = (points: number) => {
-    const element = document.createElement('div');
-    element.className = 'farming-animation';
-    element.textContent = `+${points}`;
-    document.body.appendChild(element);
-    
-    setTimeout(() => element.remove(), 1000);
-  };
-
-  if (!mounted) return null;
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-purple-900 to-black flex items-center justify-center">
-        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-purple-500"></div>
-      </div>
-    );
+    const element = document.createElement('div')
+    element.className = 'farming-animation'
+    element.textContent = `+${points}`
+    document.body.appendChild(element)
+    setTimeout(() => element.remove(), 1000)
   }
+
+  if (!mounted) return null
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-900 to-black text-white">
@@ -227,7 +216,5 @@ const App: React.FC = () => {
         }
       `}</style>
     </div>
-  );
-};
-
-export default App;
+  )
+}
