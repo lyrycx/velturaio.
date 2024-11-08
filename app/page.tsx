@@ -1,6 +1,19 @@
 'use client'
 
 import { useState, useEffect } from "react"
+import Image from 'next/image'
+import './globals.css'
+
+interface User {
+  id: string
+  telegramId: number
+  username?: string
+  firstName?: string
+  lastName?: string
+  points: number
+  createdAt: Date
+  updatedAt: Date
+}
 
 declare global {
   interface Window {
@@ -16,33 +29,29 @@ declare global {
             last_name?: string
           }
         }
+        openTelegramLink: (url: string) => void
       }
     }
   }
 }
 
-interface User {
-  id: string
-  telegramId: number
-  username?: string
-  firstName?: string
-  lastName?: string
-  points: number
-  createdAt: Date
-  updatedAt: Date
-}
-
 export default function Page() {
   const [user, setUser] = useState<User | null>(null)
   const [mounted, setMounted] = useState(false)
-  const [powerLevel, setPowerLevel] = useState(1)
-  const [farmingPoints, setFarmingPoints] = useState(0)
+  const [isRotating, setIsRotating] = useState(false)
   const [lastClickTime, setLastClickTime] = useState(Date.now())
-  const [activeTab, setActiveTab] = useState('farm')
+  const [currentView, setCurrentView] = useState('home')
+  const [farmingPoints, setFarmingPoints] = useState(0)
+  const [autoBoostLevel, setAutoBoostLevel] = useState(1)
+  const [language, setLanguage] = useState('en')
+  const [showSettings, setShowSettings] = useState(false)
 
   useEffect(() => {
     setMounted(true)
-    
+    initializeTelegram()
+  }, [])
+
+  const initializeTelegram = () => {
     if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
       const tg = window.Telegram.WebApp
       tg.ready()
@@ -58,7 +67,7 @@ export default function Page() {
         })
       }
     }
-  }, [])
+  }
 
   const fetchUserData = async (telegramUser: any) => {
     try {
@@ -74,147 +83,180 @@ export default function Page() {
     }
   }
 
-  const handleFarming = async () => {
+  const handleMining = async () => {
     if (!user) return
-
     const currentTime = Date.now()
-    const timeDiff = currentTime - lastClickTime
-    
-    if (timeDiff < 1000) return
+    if (currentTime - lastClickTime < 1000) return
 
-    const pointsToAdd = powerLevel * 1
-    
+    setIsRotating(true)
+    setTimeout(() => setIsRotating(false), 1000)
+
     try {
-      const response = await fetch('/api/farm', {
+      const response = await fetch('/api/increase-points', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: user.id,
-          points: pointsToAdd
+        body: JSON.stringify({ 
+          telegramId: user.telegramId,
+          boostLevel: autoBoostLevel 
         }),
       })
 
       if (response.ok) {
-        setUser(prev => prev ? {
-          ...prev,
-          points: prev.points + pointsToAdd
-        } : null)
-        setFarmingPoints(prev => prev + pointsToAdd)
-        showFarmingAnimation(pointsToAdd)
+        const { points } = await response.json()
+        setUser(prev => prev ? { ...prev, points } : null)
+        setFarmingPoints(prev => prev + autoBoostLevel)
+        showPointsAnimation(autoBoostLevel)
       }
     } catch (error) {
-      console.error('Farming failed:', error)
+      console.error('Mining failed:', error)
     }
-
     setLastClickTime(currentTime)
   }
 
-  const showFarmingAnimation = (points: number) => {
+  const handleBoostUpgrade = async (level: number, cost: number) => {
+    if (!user || user.points < cost || autoBoostLevel >= level) return
+
+    try {
+      const response = await fetch('/api/upgrade-boost', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          telegramId: user.telegramId,
+          cost,
+          level
+        }),
+      })
+
+      if (response.ok) {
+        const { points } = await response.json()
+        setUser(prev => prev ? { ...prev, points } : null)
+        setAutoBoostLevel(level)
+      }
+    } catch (error) {
+      console.error('Upgrade failed:', error)
+    }
+  }
+
+  const handleShare = () => {
+    if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
+      const shareUrl = `https://t.me/share/url?url=https://t.me/VelturaMiningBot?start=${user?.telegramId}`
+      window.Telegram.WebApp.openTelegramLink(shareUrl)
+    }
+  }
+
+  const showPointsAnimation = (points: number) => {
     const element = document.createElement('div')
-    element.className = 'farming-animation'
-    element.textContent = `+${points}`
+    element.className = 'points-animation'
+    element.textContent = `+${points} VLT`
     document.body.appendChild(element)
     setTimeout(() => element.remove(), 1000)
   }
 
+  const renderHome = () => (
+    <div className="home-view">
+      <div className="points-display">
+        <Image src="/veltura.png" alt="VLT" width={24} height={24} className="vlt-icon" />
+        <span>{user?.points?.toLocaleString() || '0'} VLT</span>
+      </div>
+      <div className="crystal-container">
+        <button onClick={handleMining} className={`crystal-button ${isRotating ? 'rotate' : ''}`}>
+          <Image
+            src="/veltura.png"
+            alt="Veltura Crystal"
+            width={200}
+            height={200}
+            className="crystal-image"
+            priority
+          />
+        </button>
+      </div>
+    </div>
+  )
+
+  const renderBoost = () => (
+    <div className="boost-view">
+      <h2>Auto Mining Boost</h2>
+      <div className="boost-levels">
+        {[...Array(10)].map((_, index) => {
+          const level = index + 1
+          const cost = Math.pow(level, 2) * 1000
+          return (
+            <div key={level} className={`boost-card ${autoBoostLevel >= level ? 'active' : ''}`}>
+              <div className="boost-level">Level {level}</div>
+              <div className="boost-multiplier">{level}x</div>
+              <button 
+                onClick={() => handleBoostUpgrade(level, cost)}
+                disabled={autoBoostLevel >= level || (user?.points || 0) < cost}
+                className="boost-button"
+              >
+                {cost.toLocaleString()} VLT
+              </button>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+
+  const renderFriends = () => (
+    <div className="friends-view">
+      <div className="referral-box">
+        <h2>Invite Friends</h2>
+        <p>Share your referral link and earn 10% from friends' mining!</p>
+        <div className="referral-link">
+          <div className="link-display">
+            https://t.me/VelturaMiningBot?start={user?.telegramId}
+          </div>
+          <button onClick={handleShare} className="share-button">
+            Share on Telegram
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+
   if (!mounted) return null
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-purple-900 to-black text-white">
-      <header className="p-4 flex justify-between items-center border-b border-purple-700">
-        <div className="flex items-center space-x-2">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
-            {user?.firstName?.[0] || '?'}
+    <div className="game-container">
+      <video autoPlay loop muted playsInline className="background-video">
+        <source src="/background.mp4" type="video/mp4" />
+      </video>
+      
+      <div className="snow-overlay"></div>
+
+      <header className="game-header">
+        <div className="user-info">
+          <div className="avatar">
+            {user?.firstName?.[0] || '❄'}
           </div>
-          <div>
-            <h2 className="font-bold">{user?.firstName || 'User'}</h2>
-            <p className="text-sm text-purple-300">@{user?.username || 'anonymous'}</p>
+          <div className="user-details">
+            <h2>{user?.firstName || 'Winter Farmer'}</h2>
+            <p>CEO</p>
           </div>
         </div>
-        <div className="bg-purple-800/50 px-4 py-2 rounded-full flex items-center backdrop-blur-sm">
-          <span className="text-yellow-400 mr-2">⚡</span>
-          <span>{user?.points?.toLocaleString() || '0'} VLT</span>
-        </div>
+        <button onClick={() => setShowSettings(!showSettings)} className="settings-button">
+          ⚙️
+        </button>
       </header>
 
-      <main className="p-4 max-w-md mx-auto">
-        <div className="space-y-6">
-          <div className="bg-purple-800/30 p-6 rounded-2xl backdrop-blur-sm border border-purple-700/50">
-            <div className="text-center mb-4">
-              <h3 className="text-xl font-bold">Power Level {powerLevel}</h3>
-              <p className="text-sm text-purple-300">Farm VLT tokens by tapping</p>
-            </div>
-            
-            <button 
-              onClick={handleFarming}
-              className="w-full h-32 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl
-                       flex items-center justify-center text-2xl font-bold
-                       transform transition hover:scale-105 active:scale-95
-                       border border-white/10 shadow-lg"
-            >
-              TAP TO FARM
-            </button>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-purple-800/30 p-4 rounded-xl backdrop-blur-sm border border-purple-700/50">
-              <h4 className="text-purple-300 text-sm">Session Earnings</h4>
-              <p className="text-2xl font-bold">{farmingPoints.toFixed(1)} VLT</p>
-            </div>
-            <div className="bg-purple-800/30 p-4 rounded-xl backdrop-blur-sm border border-purple-700/50">
-              <h4 className="text-purple-300 text-sm">Power Multiplier</h4>
-              <p className="text-2xl font-bold">x{powerLevel}</p>
-            </div>
-          </div>
-        </div>
+      <main className="game-content">
+        {currentView === 'home' && renderHome()}
+        {currentView === 'boost' && renderBoost()}
+        {currentView === 'friends' && renderFriends()}
       </main>
 
-      <nav className="fixed bottom-0 w-full bg-purple-900/80 backdrop-blur-md border-t border-purple-700">
-        <div className="flex justify-around p-4 max-w-md mx-auto">
-          {[
-            { id: 'farm', icon: '🌾', label: 'Farm' },
-            { id: 'upgrade', icon: '⚡', label: 'Upgrade' },
-            { id: 'profile', icon: '👤', label: 'Profile' },
-            { id: 'shop', icon: '🛍️', label: 'Shop' }
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex flex-col items-center transition-colors ${
-                activeTab === tab.id ? 'text-purple-400' : 'text-gray-400'
-              }`}
-            >
-              <span className="text-xl mb-1">{tab.icon}</span>
-              <span className="text-xs">{tab.label}</span>
-            </button>
-          ))}
-        </div>
+      <nav className="bottom-navigation">
+        <button onClick={() => setCurrentView('home')} className={`nav-button ${currentView === 'home' ? 'active' : ''}`}>
+          🏠
+        </button>
+        <button onClick={() => setCurrentView('boost')} className={`nav-button ${currentView === 'boost' ? 'active' : ''}`}>
+          ⚡
+        </button>
+        <button onClick={() => setCurrentView('friends')} className={`nav-button ${currentView === 'friends' ? 'active' : ''}`}>
+          👥
+        </button>
       </nav>
-
-      <style jsx global>{`
-        .farming-animation {
-          position: fixed;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          animation: floatUp 1s ease-out forwards;
-          color: #a855f7;
-          font-weight: bold;
-          font-size: 24px;
-          pointer-events: none;
-        }
-
-        @keyframes floatUp {
-          0% {
-            opacity: 1;
-            transform: translate(-50%, -50%);
-          }
-          100% {
-            opacity: 0;
-            transform: translate(-50%, -100%);
-          }
-        }
-      `}</style>
     </div>
   )
 }
