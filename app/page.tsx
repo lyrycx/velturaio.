@@ -1,8 +1,7 @@
 'use client'
 
 import { useState, useEffect } from "react"
-import Image from 'next/image'
-import './globals.css'
+import { Header, Navigation, HomeView, BoostView, FriendsView, EarnView, SettingsModal } from './components/GameComponents'
 
 interface User {
   id: string
@@ -13,6 +12,9 @@ interface User {
   points: number
   createdAt: Date
   updatedAt: Date
+  level: number
+  totalMined: number
+  referralCount: number
 }
 
 declare global {
@@ -41,10 +43,9 @@ export default function Page() {
   const [isRotating, setIsRotating] = useState(false)
   const [lastClickTime, setLastClickTime] = useState(Date.now())
   const [currentView, setCurrentView] = useState('home')
-  const [farmingPoints, setFarmingPoints] = useState(0)
   const [autoBoostLevel, setAutoBoostLevel] = useState(1)
-  const [language, setLanguage] = useState('en')
   const [showSettings, setShowSettings] = useState(false)
+  const [miningStreak, setMiningStreak] = useState(0)
 
   useEffect(() => {
     setMounted(true)
@@ -92,23 +93,26 @@ export default function Page() {
     setTimeout(() => setIsRotating(false), 1000)
 
     try {
+      const comboMultiplier = Math.min(miningStreak + 1, 5)
+      const pointsToAdd = autoBoostLevel * comboMultiplier
+
       const response = await fetch('/api/increase-points', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           telegramId: user.telegramId,
-          boostLevel: autoBoostLevel 
+          points: pointsToAdd
         }),
       })
 
       if (response.ok) {
         const { points } = await response.json()
         setUser(prev => prev ? { ...prev, points } : null)
-        setFarmingPoints(prev => prev + autoBoostLevel)
-        showPointsAnimation(autoBoostLevel)
+        setMiningStreak(prev => prev + 1)
       }
     } catch (error) {
       console.error('Mining failed:', error)
+      setMiningStreak(0)
     }
     setLastClickTime(currentTime)
   }
@@ -144,119 +148,58 @@ export default function Page() {
     }
   }
 
-  const showPointsAnimation = (points: number) => {
-    const element = document.createElement('div')
-    element.className = 'points-animation'
-    element.textContent = `+${points} VLT`
-    document.body.appendChild(element)
-    setTimeout(() => element.remove(), 1000)
-  }
-
-  const renderHome = () => (
-    <div className="home-view">
-      <div className="points-display">
-        <Image src="/veltura.png" alt="VLT" width={24} height={24} className="vlt-icon" />
-        <span>{user?.points?.toLocaleString() || '0'} VLT</span>
-      </div>
-      <div className="crystal-container">
-        <button onClick={handleMining} className={`crystal-button ${isRotating ? 'rotate' : ''}`}>
-          <Image
-            src="/veltura.png"
-            alt="Veltura Crystal"
-            width={200}
-            height={200}
-            className="crystal-image"
-            priority
-          />
-        </button>
-      </div>
-    </div>
-  )
-
-  const renderBoost = () => (
-    <div className="boost-view">
-      <h2>Auto Mining Boost</h2>
-      <div className="boost-levels">
-        {[...Array(10)].map((_, index) => {
-          const level = index + 1
-          const cost = Math.pow(level, 2) * 1000
-          return (
-            <div key={level} className={`boost-card ${autoBoostLevel >= level ? 'active' : ''}`}>
-              <div className="boost-level">Level {level}</div>
-              <div className="boost-multiplier">{level}x</div>
-              <button 
-                onClick={() => handleBoostUpgrade(level, cost)}
-                disabled={autoBoostLevel >= level || (user?.points || 0) < cost}
-                className="boost-button"
-              >
-                {cost.toLocaleString()} VLT
-              </button>
-            </div>
-          )
-        })}
-      </div>
-    </div>
-  )
-
-  const renderFriends = () => (
-    <div className="friends-view">
-      <div className="referral-box">
-        <h2>Invite Friends</h2>
-        <p>Share your referral link and earn 10% from friends' mining!</p>
-        <div className="referral-link">
-          <div className="link-display">
-            https://t.me/VelturaMiningBot?start={user?.telegramId}
-          </div>
-          <button onClick={handleShare} className="share-button">
-            Share on Telegram
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-
   if (!mounted) return null
 
   return (
     <div className="game-container">
-      <video autoPlay loop muted playsInline className="background-video">
-        <source src="/background.mp4" type="video/mp4" />
-      </video>
-      
       <div className="snow-overlay"></div>
 
-      <header className="game-header">
-        <div className="user-info">
-          <div className="avatar">
-            {user?.firstName?.[0] || '❄'}
-          </div>
-          <div className="user-details">
-            <h2>{user?.firstName || 'Winter Farmer'}</h2>
-            <p>CEO</p>
-          </div>
-        </div>
-        <button onClick={() => setShowSettings(!showSettings)} className="settings-button">
-          ⚙️
-        </button>
-      </header>
+      <Header
+        user={user}
+        showSettings={showSettings}
+        setShowSettings={setShowSettings}
+      />
 
       <main className="game-content">
-        {currentView === 'home' && renderHome()}
-        {currentView === 'boost' && renderBoost()}
-        {currentView === 'friends' && renderFriends()}
+        {currentView === 'home' && (
+          <HomeView
+            user={user}
+            handleMining={handleMining}
+            isRotating={isRotating}
+            miningStreak={miningStreak}
+          />
+        )}
+        {currentView === 'boost' && (
+          <BoostView
+            user={user}
+            autoBoostLevel={autoBoostLevel}
+            handleBoostUpgrade={handleBoostUpgrade}
+          />
+        )}
+        {currentView === 'friends' && (
+          <FriendsView
+            user={user}
+            handleShare={handleShare}
+          />
+        )}
+        {currentView === 'earn' && (
+          <EarnView
+            user={user}
+          />
+        )}
       </main>
 
-      <nav className="bottom-navigation">
-        <button onClick={() => setCurrentView('home')} className={`nav-button ${currentView === 'home' ? 'active' : ''}`}>
-          🏠
-        </button>
-        <button onClick={() => setCurrentView('boost')} className={`nav-button ${currentView === 'boost' ? 'active' : ''}`}>
-          ⚡
-        </button>
-        <button onClick={() => setCurrentView('friends')} className={`nav-button ${currentView === 'friends' ? 'active' : ''}`}>
-          👥
-        </button>
-      </nav>
+      <Navigation
+        currentView={currentView}
+        setCurrentView={setCurrentView}
+      />
+
+      {showSettings && (
+        <SettingsModal
+          onClose={() => setShowSettings(false)}
+          user={user}
+        />
+      )}
     </div>
   )
 }
