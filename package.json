@@ -1,34 +1,27 @@
 {
-  "name": "24-connect-database-github",
+  "name": "veltura-crypto",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build",
+    "build": "next build",
     "start": "next start",
     "lint": "next lint"
   },
   "dependencies": {
-    "@prisma/client": "^5.19.1",
-    "@twa-dev/types": "^7.10.0",
-    "mongodb": "^6.9.0",
-    "next": "14.2.12",
+    "next": "latest",
     "react": "^18",
-    "react-dom": "^18"
+    "react-dom": "^18",
+    "@prisma/client": "^5.19.1"
   },
   "devDependencies": {
-<<<<<<< HEAD
-    "@types/node": "20.17.6",
-=======
     "@types/node": "^20",
->>>>>>> ca7bb6aa559295b55235fd4852b6705f2ce74771
     "@types/react": "^18",
     "@types/react-dom": "^18",
-    "eslint": "^8",
-    "eslint-config-next": "14.2.12",
+    "autoprefixer": "^10.0.1",
     "postcss": "^8",
     "prisma": "^5.19.1",
-    "tailwindcss": "^3.4.1",
+    "tailwindcss": "^3.3.0",
     "typescript": "^5"
   }
 }
