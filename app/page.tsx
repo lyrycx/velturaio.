@@ -10,11 +10,10 @@ interface User {
   firstName?: string
   lastName?: string
   points: number
+  friends: number
+  hasUsedReferral: boolean
   createdAt: Date
   updatedAt: Date
-  level: number
-  totalMined: number
-  referralCount: number
 }
 
 declare global {
@@ -37,12 +36,8 @@ declare global {
   }
 }
 
-<<<<<<< HEAD
-// Update the video URL to a direct MP4 link
 const videoBackground = "https://cdn.pixabay.com/vimeo/414800870/abstract-41161.mp4"
 
-=======
->>>>>>> ca7bb6aa559295b55235fd4852b6705f2ce74771
 export default function Page() {
   const [user, setUser] = useState<User | null>(null)
   const [mounted, setMounted] = useState(false)
@@ -99,15 +94,11 @@ export default function Page() {
     setTimeout(() => setIsRotating(false), 1000)
 
     try {
-      const comboMultiplier = Math.min(miningStreak + 1, 5)
-      const pointsToAdd = autoBoostLevel * comboMultiplier
-
       const response = await fetch('/api/increase-points', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           telegramId: user.telegramId,
-          points: pointsToAdd
         }),
       })
 
@@ -149,11 +140,7 @@ export default function Page() {
 
   const handleShare = () => {
     if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
-<<<<<<< HEAD
       const shareUrl = `https://t.me/share/url?url=https://t.me/VelturaMiningBot?start=ref_${user?.telegramId}&text=Join%20Veltura%20Mining%20and%20earn%2050,000%20VLT%20bonus!%20Use%20my%20referral%20link%20to%20start%20mining%20crypto%20together!`
-=======
-      const shareUrl = `https://t.me/share/url?url=https://t.me/VelturaMiningBot?start=${user?.telegramId}`
->>>>>>> ca7bb6aa559295b55235fd4852b6705f2ce74771
       window.Telegram.WebApp.openTelegramLink(shareUrl)
     }
   }
@@ -162,17 +149,14 @@ export default function Page() {
 
   return (
     <div className="game-container">
-<<<<<<< HEAD
-      <video 
-        autoPlay 
-        muted 
-        loop 
-        playsInline 
+      <video
+        autoPlay
+        muted
+        loop
+        playsInline
         className="video-background"
         src={videoBackground}
       />
-=======
->>>>>>> ca7bb6aa559295b55235fd4852b6705f2ce74771
       <div className="snow-overlay"></div>
 
       <Header
@@ -188,6 +172,7 @@ export default function Page() {
             handleMining={handleMining}
             isRotating={isRotating}
             miningStreak={miningStreak}
+            autoBoostLevel={autoBoostLevel}
           />
         )}
         {currentView === 'boost' && (
