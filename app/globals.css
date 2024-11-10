@@ -603,6 +603,7 @@ body {
 
 /* Earn View Styles */
 .earn-view {
+<<<<<<< HEAD
   padding: 1rem;
   height: calc(100vh - 140px);
   display: flex;
@@ -613,16 +614,40 @@ body {
   width: 100%;
   top: 70px;
   overflow: hidden;
+=======
+  padding: 2rem;
+  min-height: calc(100vh - 120px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+}
+
+.earn-view h2 {
+  font-size: 2rem;
+  color: var(--frost);
+  text-shadow: 0 0 15px var(--frost);
+  margin-bottom: 1rem;
+>>>>>>> ca7bb6aa559295b55235fd4852b6705f2ce74771
 }
 
 .social-grid {
   display: grid;
+<<<<<<< HEAD
   grid-template-columns: repeat(3, 1fr);
   gap: 1rem;
   width: 100%;
   max-width: 600px;
   padding: 0.5rem;
 }
+=======
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  width: 100%;
+  max-width: 1200px;
+}
+
+>>>>>>> ca7bb6aa559295b55235fd4852b6705f2ce74771
 .social-card {
   background: rgba(26, 35, 50, 0.9);
   border: 2px solid var(--frost);
@@ -680,6 +705,7 @@ body {
 .social-button:active {
   transform: scale(0.95);
 }
+<<<<<<< HEAD
 
 .social-button.claimed {
   background: #2c3e50;
@@ -750,3 +776,5 @@ body {
   50% { transform: scale(1.1); }
   100% { transform: scale(1); }
 }
+=======
+>>>>>>> ca7bb6aa559295b55235fd4852b6705f2ce74771
