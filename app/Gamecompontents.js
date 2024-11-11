@@ -163,14 +163,14 @@ const EarnView = ({ user }) => {
       reward: 5000
     },
     {
-      name: 'Twitter', 
+      name: 'Twitter',
       icon: "https://upload.wikimedia.org/wikipedia/commons/6/6f/Logo_of_Twitter.svg",
       url: 'https://twitter.com/VelturaCrypto',
       reward: 5000
     },
     {
       name: 'Telegram',
-      icon: "https://upload.wikimedia.org/wikipedia/commons/8/82/Telegram_logo.svg", 
+      icon: "https://upload.wikimedia.org/wikipedia/commons/8/82/Telegram_logo.svg",
       url: 'https://t.me/VelturaCrypto',
       reward: 5000
     }
