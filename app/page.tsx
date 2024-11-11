@@ -16,7 +16,6 @@ interface User {
   friends: number
 }
 
-
 declare global {
   interface Window {
     Telegram?: {
@@ -89,24 +88,27 @@ export default function Page() {
   const handleMining = async () => {
     if (!user) return
     const currentTime = Date.now()
-    if (currentTime - lastClickTime < 1000) return
+    if (currentTime - lastClickTime < 300) return // Faster mining speed
 
     setIsRotating(true)
-    setTimeout(() => setIsRotating(false), 1000)
+    setTimeout(() => setIsRotating(false), 300)
 
     try {
+      const pointsToAdd = autoBoostLevel * (miningStreak + 1)
+      
       const response = await fetch('/api/increase-points', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           telegramId: user.telegramId,
+          points: pointsToAdd
         }),
       })
 
       if (response.ok) {
         const { points } = await response.json()
         setUser(prev => prev ? { ...prev, points } : null)
-        setMiningStreak(prev => prev + 1)
+        setMiningStreak(prev => Math.min(prev + 1, 5)) // Cap streak at 5x
       }
     } catch (error) {
       console.error('Mining failed:', error)
