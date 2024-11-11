@@ -10,11 +10,12 @@ interface User {
   firstName?: string
   lastName?: string
   points: number
-  friends: number
-  hasUsedReferral: boolean
+  totalMined: number
   createdAt: Date
   updatedAt: Date
+  friends: number
 }
+
 
 declare global {
   interface Window {
