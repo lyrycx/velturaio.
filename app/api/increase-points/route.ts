@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 
 export async function POST(req: NextRequest) {
     try {
-        const { telegramId } = await req.json()
+        const { telegramId, points } = await req.json()
 
         if (!telegramId) {
             return NextResponse.json({ error: 'Invalid telegramId' }, { status: 400 })
@@ -12,15 +12,13 @@ export async function POST(req: NextRequest) {
         const updatedUser = await prisma.user.update({
             where: { telegramId },
             data: { 
-                points: { increment: 1 },
-                totalMined: { increment: 1 }
+                points: { increment: points || 1 }
             }
         })
 
         return NextResponse.json({ 
             success: true, 
-            points: updatedUser.points,
-            totalMined: updatedUser.totalMined 
+            points: updatedUser.points
         })
     } catch (error) {
         console.error('Error increasing points:', error)
