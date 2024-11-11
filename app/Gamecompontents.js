@@ -9,7 +9,7 @@ const Header = ({ user, showSettings, setShowSettings }) => {
         <div className="avatar">{user?.firstName?.[0] || '👤'}</div>
         <div className="user-details">
           <h2>{user?.firstName || 'Crypto Miner'}</h2>
-          <p>{user?.points?.toLocaleString() || '0'} VLT</p>
+          <p>{user?.points?.toLocaleString() || '0'} Points</p>
         </div>
       </div>
       <button onClick={() => setShowSettings(!showSettings)} className="settings-button">⚙️</button>
@@ -19,18 +19,26 @@ const Header = ({ user, showSettings, setShowSettings }) => {
 
 const HomeView = ({ user, handleMining, isRotating, miningStreak, autoBoostLevel }) => {
   const [miningPoints, setMiningPoints] = useState([])
+  const [points, setPoints] = useState(0)
   const miningIconUrl = "https://r.resimlink.com/vXD2MproiNHm.png"
+
+  useEffect(() => {
+    if (user?.points) {
+      setPoints(user.points)
+    }
+  }, [user?.points])
 
   const handleMiningClick = (e) => {
     const rect = e.currentTarget.getBoundingClientRect()
     const x = e.clientX - rect.left
     const y = e.clientY - rect.top
    
-    const points = autoBoostLevel * 2
+    const newPoints = autoBoostLevel * 2
+    setPoints(prev => prev + newPoints)
     setMiningPoints(prev => [...prev, {
       x,
       y,
-      points: `+${points} VLT`,
+      points: `+${newPoints} Points`,
       id: Date.now()
     }])
 
@@ -49,10 +57,9 @@ const HomeView = ({ user, handleMining, isRotating, miningStreak, autoBoostLevel
           <span className="stat-value">x{autoBoostLevel * 2}</span>
         </div>
         <div className="stat-item">
-  <span className="stat-label">VLT Balance</span>
-  <span className="stat-value">{user?.points?.toLocaleString() || '0'} VLT</span>
-</div>
-
+          <span className="stat-label">Points</span>
+          <span className="stat-value">{points.toLocaleString()} Points</span>
+        </div>
       </div>
       <div className="crystal-container">
         <button
@@ -104,7 +111,7 @@ const BoostView = ({ user, autoBoostLevel, handleBoostUpgrade }) => {
                 disabled={autoBoostLevel >= boost.level || (user?.points || 0) < boost.cost}
                 className="upgrade-button"
               >
-                {autoBoostLevel >= boost.level ? 'Owned' : `${boost.cost.toLocaleString()} VLT`}
+                {autoBoostLevel >= boost.level ? 'Owned' : `${boost.cost.toLocaleString()} Points`}
               </button>
             </div>
           </div>
@@ -124,12 +131,12 @@ const FriendsView = ({ user, handleShare }) => {
         </div>
         <div className="stat-box">
           <span className="stat-value">50,000</span>
-          <span className="stat-label">VLT Per Referral</span>
+          <span className="stat-label">Points Per Referral</span>
         </div>
       </div>
       <div className="referral-card">
         <h3>Invite Friends</h3>
-        <p>Share your link and earn 50,000 VLT for each friend!</p>
+        <p>Share your link and earn 50,000 Points for each friend!</p>
         <button onClick={handleShare} className="share-button">
           <span>Share on Telegram</span>
           <span className="share-icon">📤</span>
@@ -156,14 +163,14 @@ const EarnView = ({ user }) => {
       reward: 5000
     },
     {
-      name: 'Twitter',
+      name: 'Twitter', 
       icon: "https://upload.wikimedia.org/wikipedia/commons/6/6f/Logo_of_Twitter.svg",
       url: 'https://twitter.com/VelturaCrypto',
       reward: 5000
     },
     {
       name: 'Telegram',
-      icon: "https://upload.wikimedia.org/wikipedia/commons/8/82/Telegram_logo.svg",
+      icon: "https://upload.wikimedia.org/wikipedia/commons/8/82/Telegram_logo.svg", 
       url: 'https://t.me/VelturaCrypto',
       reward: 5000
     }
@@ -197,13 +204,13 @@ const EarnView = ({ user }) => {
 
   return (
     <div className="earn-view">
-      <h2>Earn VLT</h2>
+      <h2>Earn Points</h2>
       <div className="social-grid">
         {socialMedia.map((platform) => (
           <div key={platform.name} className="social-card">
             <img src={platform.icon} alt={platform.name} className="social-icon" />
             <h3>{platform.name}</h3>
-            <p>{platform.reward.toLocaleString()} VLT</p>
+            <p>{platform.reward.toLocaleString()} Points</p>
             <button
               onClick={() => handleSocialClick(platform)}
               className={`social-button ${claimedRewards[platform.name] ? 'claimed' : ''}`}
