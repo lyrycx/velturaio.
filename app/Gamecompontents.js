@@ -49,9 +49,10 @@ const HomeView = ({ user, handleMining, isRotating, miningStreak, autoBoostLevel
           <span className="stat-value">x{autoBoostLevel * 2}</span>
         </div>
         <div className="stat-item">
-          <span className="stat-label">VLT Balance</span>
-          <span className="stat-value">{user?.points?.toLocaleString() || '0'} VLT</span>
-        </div>
+  <span className="stat-label">VLT Balance</span>
+  <span className="stat-value">{user?.points?.toLocaleString() || '0'} VLT</span>
+</div>
+
       </div>
       <div className="crystal-container">
         <button
