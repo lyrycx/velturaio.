@@ -11,9 +11,9 @@ interface HomeViewProps {
       <div className="mining-area">
         <div className="stats-display">
           <div className="stat-card glow-effect">
-            <h3>VLT Balance</h3>
+            <h3>Points Balance</h3>
             <p className="text-2xl font-bold text-green-400">
-              {user?.points || 0} VLT
+              {user?.points || 0} Points
             </p>
           </div>
           <div className="stat-card">
@@ -26,13 +26,13 @@ interface HomeViewProps {
           </div>
         </div>
   
-        <button 
-          onClick={handleMining} 
+        <button
+          onClick={handleMining}
           className={`mining-button ${isRotating ? 'rotating' : ''}`}
         >
-          <img 
-            src="/veltura-icon.png" 
-            alt="Mine VLT" 
+          <img
+            src="/veltura-icon.png"
+            alt="Mine Points"
             className="veltura-icon"
           />
         </button>

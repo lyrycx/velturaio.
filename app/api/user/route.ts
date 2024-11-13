@@ -8,17 +8,16 @@ export async function POST(req: NextRequest) {
         const user = await prisma.user.upsert({
             where: { telegramId: id },
             update: {
-                username,
-                firstName: first_name,
-                lastName: last_name
+                username: username || '',
+                firstName: first_name || 'Player',
+                lastName: last_name || ''
             },
             create: {
                 telegramId: id,
-                username,
-                firstName: first_name,
-                lastName: last_name,
+                username: username || '',
+                firstName: first_name || 'Player',
+                lastName: last_name || '',
                 points: 0,
-                totalMined: 0,
                 friends: 0
             }
         })
