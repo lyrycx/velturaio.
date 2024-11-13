@@ -13,6 +13,7 @@ interface User {
   createdAt: Date
   updatedAt: Date
   referralCount: number
+  autoBoostLevel: number
 }
 
 declare global {
@@ -52,6 +53,28 @@ export default function Page() {
     initializeTelegram()
   }, [])
 
+  useEffect(() => {
+    if (user?.telegramId) {
+      const interval = setInterval(() => {
+        refreshUserData(user.telegramId)
+      }, 3000)
+      return () => clearInterval(interval)
+    }
+  }, [user?.telegramId])
+
+  const refreshUserData = async (telegramId: number) => {
+    try {
+      const response = await fetch(`/api/user/${telegramId}`)
+      const data = await response.json()
+      if (data) {
+        setUser(data)
+        setAutoBoostLevel(data.autoBoostLevel || 1)
+      }
+    } catch (error) {
+      console.error('Failed to refresh user data:', error)
+    }
+  }
+
   const initializeTelegram = () => {
     if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
       const tg = window.Telegram.WebApp
@@ -79,6 +102,7 @@ export default function Page() {
       })
       const data = await response.json()
       setUser(data)
+      setAutoBoostLevel(data.autoBoostLevel || 1)
     } catch (error) {
       console.error('Failed to fetch user data:', error)
     }
@@ -94,20 +118,23 @@ export default function Page() {
 
     try {
       const pointsToAdd = autoBoostLevel * (miningStreak + 1)
-     
+      
       const response = await fetch('/api/increase-points', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           telegramId: user.telegramId,
-          points: pointsToAdd
+          points: pointsToAdd,
+          miningStreak: miningStreak,
+          autoBoostLevel: autoBoostLevel
         }),
       })
 
       if (response.ok) {
-        const { points } = await response.json()
-        setUser(prev => prev ? { ...prev, points } : null)
+        const updatedUser = await response.json()
+        setUser(updatedUser)
         setMiningStreak(prev => Math.min(prev + 1, 5))
+        refreshUserData(user.telegramId)
       }
     } catch (error) {
       console.error('Mining failed:', error)
@@ -131,9 +158,10 @@ export default function Page() {
       })
 
       if (response.ok) {
-        const { points } = await response.json()
-        setUser(prev => prev ? { ...prev, points } : null)
-        setAutoBoostLevel(level)
+        const updatedUser = await response.json()
+        setUser(updatedUser)
+        setAutoBoostLevel(updatedUser.autoBoostLevel)
+        refreshUserData(user.telegramId)
       }
     } catch (error) {
       console.error('Upgrade failed:', error)
