@@ -9,7 +9,7 @@ const Header = ({ user, showSettings, setShowSettings }) => {
         <div className="avatar">{user?.firstName?.[0] || '👤'}</div>
         <div className="user-details">
           <h2>{user?.firstName || 'Crypto Miner'}</h2>
-          <p>{user?.points?.toLocaleString() || '0'} Points</p>
+          <p>{user?.points || 0} Points</p>
         </div>
       </div>
       <button onClick={() => setShowSettings(!showSettings)} className="settings-button">⚙️</button>
@@ -19,7 +19,7 @@ const Header = ({ user, showSettings, setShowSettings }) => {
 
 const HomeView = ({ user, handleMining, isRotating, miningStreak, autoBoostLevel }) => {
   const [miningPoints, setMiningPoints] = useState([])
-  const [points, setPoints] = useState(0)
+  const [points, setPoints] = useState(user?.points || 0)
   const miningIconUrl = "https://r.resimlink.com/vXD2MproiNHm.png"
 
   useEffect(() => {
@@ -58,7 +58,7 @@ const HomeView = ({ user, handleMining, isRotating, miningStreak, autoBoostLevel
         </div>
         <div className="stat-item">
           <span className="stat-label">Points</span>
-          <span className="stat-value">{points.toLocaleString()} Points</span>
+          <span className="stat-value">{points}</span>
         </div>
       </div>
       <div className="crystal-container">
@@ -111,7 +111,7 @@ const BoostView = ({ user, autoBoostLevel, handleBoostUpgrade }) => {
                 disabled={autoBoostLevel >= boost.level || (user?.points || 0) < boost.cost}
                 className="upgrade-button"
               >
-                {autoBoostLevel >= boost.level ? 'Owned' : `${boost.cost.toLocaleString()} Points`}
+                {autoBoostLevel >= boost.level ? 'Owned' : `${boost.cost} Points`}
               </button>
             </div>
           </div>
@@ -210,7 +210,7 @@ const EarnView = ({ user }) => {
           <div key={platform.name} className="social-card">
             <img src={platform.icon} alt={platform.name} className="social-icon" />
             <h3>{platform.name}</h3>
-            <p>{platform.reward.toLocaleString()} Points</p>
+            <p>{platform.reward} Points</p>
             <button
               onClick={() => handleSocialClick(platform)}
               className={`social-button ${claimedRewards[platform.name] ? 'claimed' : ''}`}
