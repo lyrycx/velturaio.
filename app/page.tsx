@@ -10,10 +10,9 @@ interface User {
   firstName?: string
   lastName?: string
   points: number
-  friends: number
-  hasUsedReferral: boolean
   createdAt: Date
   updatedAt: Date
+  referralCount: number
 }
 
 declare global {
@@ -88,24 +87,27 @@ export default function Page() {
   const handleMining = async () => {
     if (!user) return
     const currentTime = Date.now()
-    if (currentTime - lastClickTime < 1000) return
+    if (currentTime - lastClickTime < 300) return
 
     setIsRotating(true)
-    setTimeout(() => setIsRotating(false), 1000)
+    setTimeout(() => setIsRotating(false), 300)
 
     try {
+      const pointsToAdd = autoBoostLevel * (miningStreak + 1)
+     
       const response = await fetch('/api/increase-points', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           telegramId: user.telegramId,
+          points: pointsToAdd
         }),
       })
 
       if (response.ok) {
         const { points } = await response.json()
         setUser(prev => prev ? { ...prev, points } : null)
-        setMiningStreak(prev => prev + 1)
+        setMiningStreak(prev => Math.min(prev + 1, 5))
       }
     } catch (error) {
       console.error('Mining failed:', error)
@@ -140,7 +142,7 @@ export default function Page() {
 
   const handleShare = () => {
     if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
-      const shareUrl = `https://t.me/share/url?url=https://t.me/VelturaMiningBot?start=ref_${user?.telegramId}&text=Join%20Veltura%20Mining%20and%20earn%2050,000%20VLT%20bonus!%20Use%20my%20referral%20link%20to%20start%20mining%20crypto%20together!`
+      const shareUrl = `https://t.me/share/url?url=https://t.me/VelturaMiningBot?start=ref_${user?.telegramId}&text=Join%20Veltura%20Mining%20and%20earn%2050,000%20Points%20bonus!%20Use%20my%20referral%20link%20to%20start%20mining%20together!`
       window.Telegram.WebApp.openTelegramLink(shareUrl)
     }
   }

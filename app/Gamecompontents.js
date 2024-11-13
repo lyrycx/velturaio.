@@ -1,5 +1,6 @@
-
 'use client'
+
+import { useState, useEffect } from 'react'
 
 const Header = ({ user, showSettings, setShowSettings }) => {
   return (
@@ -8,7 +9,7 @@ const Header = ({ user, showSettings, setShowSettings }) => {
         <div className="avatar">{user?.firstName?.[0] || '👤'}</div>
         <div className="user-details">
           <h2>{user?.firstName || 'Crypto Miner'}</h2>
-          <p>{user?.points?.toLocaleString() || '0'} VLT</p>
+          <p>{user?.points || 0} Points</p>
         </div>
       </div>
       <button onClick={() => setShowSettings(!showSettings)} className="settings-button">⚙️</button>
@@ -16,23 +17,71 @@ const Header = ({ user, showSettings, setShowSettings }) => {
   )
 }
 
-const HomeView = ({ user, handleMining, isRotating, miningStreak }) => {
+const HomeView = ({ user, handleMining, isRotating, miningStreak, autoBoostLevel }) => {
+  const [miningPoints, setMiningPoints] = useState([])
+  const [points, setPoints] = useState(user?.points || 0)
+  const miningIconUrl = "https://r.resimlink.com/vXD2MproiNHm.png"
+
+  useEffect(() => {
+    if (user?.points) {
+      setPoints(user.points)
+    }
+  }, [user?.points])
+
+  const handleMiningClick = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const y = e.clientY - rect.top
+   
+    const newPoints = autoBoostLevel * 2
+    setPoints(prev => prev + newPoints)
+    setMiningPoints(prev => [...prev, {
+      x,
+      y,
+      points: `+${newPoints} Points`,
+      id: Date.now()
+    }])
+
+    setTimeout(() => {
+      setMiningPoints(prev => prev.slice(1))
+    }, 1000)
+
+    handleMining()
+  }
+
   return (
     <div className="home-view">
       <div className="mining-stats">
         <div className="stat-item">
           <span className="stat-label">Mining Power</span>
-          <span className="stat-value">x{miningStreak}</span>
+          <span className="stat-value">x{autoBoostLevel * 2}</span>
         </div>
         <div className="stat-item">
-          <span className="stat-label">Total Mined</span>
-          <span className="stat-value">{user?.totalMined?.toLocaleString() || '0'}</span>
+          <span className="stat-label">Points</span>
+          <span className="stat-value">{points}</span>
         </div>
       </div>
       <div className="crystal-container">
-        <button onClick={handleMining} className={`mining-button ${isRotating ? 'pulse' : ''}`}>
-          <img src="/veltura.png" alt="Veltura" className="mining-image" />
-          <span className="mining-text">TAP TO MINE</span>
+        <button
+          onClick={handleMiningClick}
+          className={`mining-button ${isRotating ? 'pulse' : ''}`}
+          style={{ touchAction: 'manipulation' }}
+        >
+          <div className="mining-circle">
+            <img src={miningIconUrl} alt="Veltura" className="mining-image" />
+            {miningPoints.map(point => (
+              <div
+                key={point.id}
+                className="floating-points"
+                style={{
+                  left: point.x,
+                  top: point.y,
+                }}
+              >
+                {point.points}
+              </div>
+            ))}
+          </div>
         </button>
       </div>
     </div>
@@ -62,7 +111,7 @@ const BoostView = ({ user, autoBoostLevel, handleBoostUpgrade }) => {
                 disabled={autoBoostLevel >= boost.level || (user?.points || 0) < boost.cost}
                 className="upgrade-button"
               >
-                {boost.cost.toLocaleString()} VLT
+                {autoBoostLevel >= boost.level ? 'Owned' : `${boost.cost} Points`}
               </button>
             </div>
           </div>
@@ -81,13 +130,13 @@ const FriendsView = ({ user, handleShare }) => {
           <span className="stat-label">Total Referrals</span>
         </div>
         <div className="stat-box">
-          <span className="stat-value">10%</span>
-          <span className="stat-label">Bonus Per Friend</span>
+          <span className="stat-value">50,000</span>
+          <span className="stat-label">Points Per Referral</span>
         </div>
       </div>
       <div className="referral-card">
         <h3>Invite Friends</h3>
-        <p>Share your link and earn 10% of their mining!</p>
+        <p>Share your link and earn 50,000 Points for each friend!</p>
         <button onClick={handleShare} className="share-button">
           <span>Share on Telegram</span>
           <span className="share-icon">📤</span>
@@ -98,33 +147,48 @@ const FriendsView = ({ user, handleShare }) => {
 }
 
 const EarnView = ({ user }) => {
-    const socialMedia = [
-      {
-        name: 'YouTube',
-        icon: '/youtube-icon.png',
-        url: 'https://youtube.com/@NikandrSurkov',
-        reward: 5000
-      },
-      {
-        name: 'Twitter',
-        icon: '/twitter-icon.png',
-        url: 'https://twitter.com/VelturaCrypto',
-        reward: 5000
-      },
-      {
-        name: 'Telegram',
-        icon: '/telegram-icon.png',
-        url: 'https://t.me/VelturaCrypto',
-        reward: 5000
-      }
-    ]
-  
-    // Rest of the EarnView component code remains the same
-  
+  const [claimedRewards, setClaimedRewards] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(`claimedRewards_${user?.telegramId}`)
+      return saved ? JSON.parse(saved) : {}
+    }
+    return {}
+  })
+
+  const socialMedia = [
+    {
+      name: 'YouTube',
+      icon: "https://upload.wikimedia.org/wikipedia/commons/0/09/YouTube_full-color_icon_%282017%29.svg",
+      url: 'https://youtube.com/@NikandrSurkov',
+      reward: 5000
+    },
+    {
+      name: 'Twitter',
+      icon: "https://upload.wikimedia.org/wikipedia/commons/6/6f/Logo_of_Twitter.svg",
+      url: 'https://twitter.com/VelturaCrypto',
+      reward: 5000
+    },
+    {
+      name: 'Telegram',
+      icon: "https://upload.wikimedia.org/wikipedia/commons/8/82/Telegram_logo.svg",
+      url: 'https://t.me/VelturaCrypto',
+      reward: 5000
+    }
+  ]
 
   const handleSocialClick = async (platform) => {
+    const newClaimedRewards = {
+      ...claimedRewards,
+      [platform.name]: true
+    }
+   
+    setClaimedRewards(newClaimedRewards)
+    localStorage.setItem(`claimedRewards_${user?.telegramId}`, JSON.stringify(newClaimedRewards))
+
+    window.open(platform.url, '_blank')
+
     try {
-      const response = await fetch('/api/claim-social-reward', {
+      await fetch('/api/claim-social-reward', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -133,10 +197,6 @@ const EarnView = ({ user }) => {
           reward: platform.reward
         })
       })
-
-      if (response.ok) {
-        window.open(platform.url, '_blank')
-      }
     } catch (error) {
       console.error('Failed to claim reward:', error)
     }
@@ -144,18 +204,23 @@ const EarnView = ({ user }) => {
 
   return (
     <div className="earn-view">
-      <h2>Earn VLT</h2>
+      <h2>Earn Points</h2>
       <div className="social-grid">
         {socialMedia.map((platform) => (
           <div key={platform.name} className="social-card">
             <img src={platform.icon} alt={platform.name} className="social-icon" />
             <h3>{platform.name}</h3>
-            <p>{platform.reward.toLocaleString()} VLT</p>
-            <button 
+            <p>{platform.reward} Points</p>
+            <button
               onClick={() => handleSocialClick(platform)}
-              className="social-button"
+              className={`social-button ${claimedRewards[platform.name] ? 'claimed' : ''}`}
+              disabled={claimedRewards[platform.name]}
+              style={{
+                backgroundColor: claimedRewards[platform.name] ? '#2c3e50' : '',
+                cursor: claimedRewards[platform.name] ? 'not-allowed' : 'pointer'
+              }}
             >
-              Follow & Earn
+              {claimedRewards[platform.name] ? 'Claimed' : 'Follow & Earn'}
             </button>
           </div>
         ))}

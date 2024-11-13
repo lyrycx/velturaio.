@@ -3,30 +3,29 @@ import { prisma } from '@/lib/prisma'
 
 export async function POST(req: NextRequest) {
     try {
-        const userData = await req.json()
+        const { id, username, first_name, last_name } = await req.json()
 
-        if (!userData || !userData.id) {
-            return NextResponse.json({ error: 'Invalid user data' }, { status: 400 })
-        }
-
-        let user = await prisma.user.findUnique({
-            where: { telegramId: userData.id }
+        const user = await prisma.user.upsert({
+            where: { telegramId: id },
+            update: {
+                username,
+                firstName: first_name,
+                lastName: last_name
+            },
+            create: {
+                telegramId: id,
+                username,
+                firstName: first_name,
+                lastName: last_name,
+                points: 0,
+                totalMined: 0,
+                friends: 0
+            }
         })
-
-        if (!user) {
-            user = await prisma.user.create({
-                data: {
-                    telegramId: userData.id,
-                    username: userData.username || '',
-                    firstName: userData.first_name || '',
-                    lastName: userData.last_name || ''
-                }
-            })
-        }
 
         return NextResponse.json(user)
     } catch (error) {
-        console.error('Error processing user data:', error)
+        console.error('Error handling user:', error)
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
     }
 }

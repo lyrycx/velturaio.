@@ -8,14 +8,15 @@ generator client {
 }
 
 model User {
-  id             String   @id @default(auto()) @map("_id") @db.ObjectId
-  telegramId     Int      @unique
-  username       String?
-  firstName      String?
-  lastName       String?
-  points         Int      @default(0)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  friends        Int      @default(0)
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  telegramId Int      @unique
+  username   String?
+  firstName  String?
+  lastName   String?
+  points     Int      @default(0)
+  totalMined Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  friends    Int      @default(0)
   hasUsedReferral Boolean  @default(false)
 }
