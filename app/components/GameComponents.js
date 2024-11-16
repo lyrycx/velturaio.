@@ -3,10 +3,12 @@
 import { useState, useEffect } from 'react'
 
 const Header = ({ user, showSettings, setShowSettings }) => {
-  const [currentPoints, setCurrentPoints] = useState(user?.points || 0)
+  const [displayPoints, setDisplayPoints] = useState(user?.points || 0)
 
   useEffect(() => {
-    setCurrentPoints(user?.points || 0)
+    if (user?.points !== undefined) {
+      setDisplayPoints(user.points)
+    }
   }, [user?.points])
 
   return (
@@ -15,7 +17,7 @@ const Header = ({ user, showSettings, setShowSettings }) => {
         <div className="avatar">{user?.firstName?.[0] || '👤'}</div>
         <div className="user-details">
           <h2>{user?.firstName || 'Crypto Miner'}</h2>
-          <p>{currentPoints} Points</p>
+          <p>{displayPoints} Points</p>
         </div>
       </div>
       <button onClick={() => setShowSettings(!showSettings)} className="settings-button">⚙️</button>
@@ -25,19 +27,22 @@ const Header = ({ user, showSettings, setShowSettings }) => {
 
 const HomeView = ({ user, handleMining, isRotating, miningStreak, autoBoostLevel }) => {
   const [miningPoints, setMiningPoints] = useState([])
-  const [currentPoints, setCurrentPoints] = useState(user?.points || 0)
+  const [displayPoints, setDisplayPoints] = useState(user?.points || 0)
   const miningIconUrl = "https://r.resimlink.com/vXD2MproiNHm.png"
 
   useEffect(() => {
-    setCurrentPoints(user?.points || 0)
+    if (user?.points !== undefined) {
+      setDisplayPoints(user.points)
+    }
   }, [user?.points])
 
-  const handleMiningClick = (e) => {
+  const handleMiningClick = async (e) => {
     const rect = e.currentTarget.getBoundingClientRect()
     const x = e.clientX - rect.left
     const y = e.clientY - rect.top
    
     const points = autoBoostLevel * 2
+    
     setMiningPoints(prev => [...prev, {
       x,
       y,
@@ -45,11 +50,14 @@ const HomeView = ({ user, handleMining, isRotating, miningStreak, autoBoostLevel
       id: Date.now()
     }])
 
+    // Update local display immediately
+    setDisplayPoints(prev => prev + points)
+
     setTimeout(() => {
       setMiningPoints(prev => prev.slice(1))
     }, 1000)
 
-    handleMining()
+    await handleMining()
   }
 
   return (
@@ -61,7 +69,7 @@ const HomeView = ({ user, handleMining, isRotating, miningStreak, autoBoostLevel
         </div>
         <div className="stat-item">
           <span className="stat-label">Points Balance</span>
-          <span className="stat-value">{currentPoints}</span>
+          <span className="stat-value">{displayPoints}</span>
         </div>
       </div>
       <div className="crystal-container">
@@ -92,10 +100,12 @@ const HomeView = ({ user, handleMining, isRotating, miningStreak, autoBoostLevel
 }
 
 const BoostView = ({ user, autoBoostLevel, handleBoostUpgrade }) => {
-  const [currentPoints, setCurrentPoints] = useState(user?.points || 0)
+  const [displayPoints, setDisplayPoints] = useState(user?.points || 0)
 
   useEffect(() => {
-    setCurrentPoints(user?.points || 0)
+    if (user?.points !== undefined) {
+      setDisplayPoints(user.points)
+    }
   }, [user?.points])
 
   const boosts = [
@@ -117,7 +127,7 @@ const BoostView = ({ user, autoBoostLevel, handleBoostUpgrade }) => {
               <span className="multiplier">×{boost.multiplier}</span>
               <button
                 onClick={() => handleBoostUpgrade(boost.level, boost.cost)}
-                disabled={autoBoostLevel >= boost.level || currentPoints < boost.cost}
+                disabled={autoBoostLevel >= boost.level || displayPoints < boost.cost}
                 className="upgrade-button"
               >
                 {autoBoostLevel >= boost.level ? 'Owned' : `${boost.cost} Points`}
@@ -131,6 +141,14 @@ const BoostView = ({ user, autoBoostLevel, handleBoostUpgrade }) => {
 }
 
 const FriendsView = ({ user, handleShare }) => {
+  const [displayPoints, setDisplayPoints] = useState(user?.points || 0)
+
+  useEffect(() => {
+    if (user?.points !== undefined) {
+      setDisplayPoints(user.points)
+    }
+  }, [user?.points])
+
   return (
     <div className="friends-view">
       <div className="referral-stats">
@@ -158,8 +176,7 @@ const FriendsView = ({ user, handleShare }) => {
 const EarnView = ({ user }) => {
   const [claimedRewards, setClaimedRewards] = useState(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem(`claimedRewards_${user?.telegramId}`)
-      return saved ? JSON.parse(saved) : {}
+      return JSON.parse(localStorage.getItem(`claimedRewards_${user?.telegramId}`) || '{}')
     }
     return {}
   })
@@ -186,13 +203,15 @@ const EarnView = ({ user }) => {
   ]
 
   const handleSocialClick = async (platform) => {
+    if (!user?.telegramId) return
+
     const newClaimedRewards = {
       ...claimedRewards,
       [platform.name]: true
     }
    
     setClaimedRewards(newClaimedRewards)
-    localStorage.setItem(`claimedRewards_${user?.telegramId}`, JSON.stringify(newClaimedRewards))
+    localStorage.setItem(`claimedRewards_${user.telegramId}`, JSON.stringify(newClaimedRewards))
 
     window.open(platform.url, '_blank')
 
@@ -201,7 +220,7 @@ const EarnView = ({ user }) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          telegramId: user?.telegramId,
+          telegramId: user.telegramId,
           platform: platform.name,
           reward: platform.reward
         })
