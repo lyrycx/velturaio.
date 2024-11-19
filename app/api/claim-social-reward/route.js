@@ -5,7 +5,10 @@ const prisma = new PrismaClient()
 
 export async function POST(req) {
   try {
-    const { telegramId, platform, reward } = await req.json()
+    const data = await req.json()
+    const telegramId = data.telegramId
+    const platform = data.platform
+    const reward = data.reward
 
     const existingClaim = await prisma.socialReward.findFirst({
       where: {
