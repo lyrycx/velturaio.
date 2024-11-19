@@ -14,10 +14,6 @@ interface User {
   updatedAt: Date
   referralCount: number
   autoBoostLevel: number
-<<<<<<< HEAD
-=======
-  lastSeen: Date
->>>>>>> b06b03dcdeb90af6469a1553308b9a611f3abd39
 }
 
 declare global {
@@ -56,7 +52,6 @@ export default function Page() {
   useEffect(() => {
     setMounted(true)
     initializeTelegram()
-<<<<<<< HEAD
 
     // Periodic user data refresh
     const interval = setInterval(() => {
@@ -66,41 +61,13 @@ export default function Page() {
     }, 1000)
 
     return () => clearInterval(interval)
-=======
-    
-    const keepAlive = setInterval(() => {
-      if (user?.telegramId) {
-        fetch('/api/keep-alive', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ telegramId: user.telegramId })
-        })
-      }
-    }, 30000) // Keep-alive every 30 seconds
-
-    // Frequent data refresh
-    const refreshInterval = setInterval(() => {
-      if (user?.telegramId) {
-        refreshUserData(user.telegramId)
-      }
-    }, 300) // Refresh every 300ms
-
-    return () => {
-      clearInterval(keepAlive)
-      clearInterval(refreshInterval)
-    }
->>>>>>> b06b03dcdeb90af6469a1553308b9a611f3abd39
   }, [user?.telegramId])
 
   const refreshUserData = async (telegramId: number) => {
     try {
       const response = await fetch(`/api/user/${telegramId}`)
       const data = await response.json()
-<<<<<<< HEAD
       if (data) {
-=======
-      if (data && data.points !== user?.points) {
->>>>>>> b06b03dcdeb90af6469a1553308b9a611f3abd39
         setUser(data)
         setAutoBoostLevel(data.autoBoostLevel || 1)
       }
@@ -163,12 +130,7 @@ export default function Page() {
           telegramId: user.telegramId,
           points: pointsToAdd,
           miningStreak: miningStreak,
-<<<<<<< HEAD
           autoBoostLevel: autoBoostLevel
-=======
-          autoBoostLevel: autoBoostLevel,
-          lastSeen: new Date()
->>>>>>> b06b03dcdeb90af6469a1553308b9a611f3abd39
         }),
       })
 
@@ -204,10 +166,7 @@ export default function Page() {
         const updatedUser = await response.json()
         setUser(updatedUser)
         setAutoBoostLevel(updatedUser.autoBoostLevel)
-<<<<<<< HEAD
         refreshUserData(user.telegramId)
-=======
->>>>>>> b06b03dcdeb90af6469a1553308b9a611f3abd39
       }
     } catch (error) {
       console.error('Upgrade failed:', error)
