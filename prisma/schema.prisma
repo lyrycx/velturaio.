@@ -1,3 +1,12 @@
+datasource db {
+  provider = "mongodb"
+  url      = "mongodb+srv://erenoiz2w1:HN6zAWz5FmLvLz5g@veltura.oyzyg.mongodb.net/veltura_database?retryWrites=true&w=majority&appName=VELTURA"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
 model User {
   id            String   @id @default(auto()) @map("_id") @db.ObjectId
   telegramId    Int     @unique
