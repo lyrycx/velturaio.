@@ -1,15 +1,13 @@
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 
-const prisma = new PrismaClient()
-
 export async function POST(req) {
-  const data = await req.json()
-  const telegramId = data.telegramId
-  const platform = data.platform
-  const reward = data.reward
-
   try {
+    const data = await req.json()
+    const telegramId = data.telegramId
+    const platform = data.platform
+    const reward = data.reward
+
     const existingClaim = await prisma.socialReward.findFirst({
       where: {
         telegramId,

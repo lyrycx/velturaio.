@@ -7,8 +7,10 @@ export async function POST(req) {
     const { id, username, first_name, last_name } = data
 
     const user = await prisma.user.upsert({
-      where: { telegramId: id },
-      update: {
+      where: { 
+        telegramId: id 
+      },
+      update: { 
         lastSeen: new Date(),
         username: username || '',
         firstName: first_name || '',
