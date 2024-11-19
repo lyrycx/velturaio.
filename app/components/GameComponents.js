@@ -1,25 +1,15 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect } from 'react'
 
 const Header = ({ user, showSettings, setShowSettings }) => {
-  const [displayPoints, setDisplayPoints] = useState(user?.points || 0)
-  const pointsRef = useRef(user?.points || 0)
-
-  useEffect(() => {
-    if (user?.points !== undefined && user.points !== pointsRef.current) {
-      pointsRef.current = user.points
-      setDisplayPoints(user.points)
-    }
-  }, [user?.points])
-
   return (
     <header className="game-header">
       <div className="user-info">
         <div className="avatar">{user?.firstName?.[0] || '👤'}</div>
         <div className="user-details">
-          <h2>{user?.firstName || 'Crypto Miner'}</h2>
-          <p>{displayPoints.toLocaleString()} Points</p>
+          <h2>{user?.firstName || user?.username || 'Crypto Miner'}</h2>
+          <p>{user?.points?.toLocaleString() || '0'} VLT</p>
         </div>
       </div>
       <button onClick={() => setShowSettings(!showSettings)} className="settings-button">⚙️</button>
@@ -29,55 +19,38 @@ const Header = ({ user, showSettings, setShowSettings }) => {
 
 const HomeView = ({ user, handleMining, isRotating, miningStreak, autoBoostLevel }) => {
   const [miningPoints, setMiningPoints] = useState([])
-  const [displayPoints, setDisplayPoints] = useState(user?.points || 0)
-  const pointsRef = useRef(user?.points || 0)
   const miningIconUrl = "https://r.resimlink.com/vXD2MproiNHm.png"
 
-  useEffect(() => {
-    if (user?.points !== undefined && user.points !== pointsRef.current) {
-      pointsRef.current = user.points
-      setDisplayPoints(user.points)
-    }
-  }, [user?.points])
-
-  const handleMiningClick = useCallback(async (e) => {
+  const handleMiningClick = (e) => {
     const rect = e.currentTarget.getBoundingClientRect()
     const x = e.clientX - rect.left
     const y = e.clientY - rect.top
    
-    const points = autoBoostLevel * 2 * (miningStreak + 1)
-    
-    const newPoint = {
+    const points = autoBoostLevel * 2
+    setMiningPoints(prev => [...prev, {
       x,
       y,
-      points: `+${points} Points`,
+      points: `+${points} VLT`,
       id: Date.now()
-    }
-    
-    setMiningPoints(prev => [...prev, newPoint])
-    setDisplayPoints(prev => prev + points)
+    }])
 
     setTimeout(() => {
-      setMiningPoints(prev => prev.filter(point => point.id !== newPoint.id))
+      setMiningPoints(prev => prev.slice(1))
     }, 1000)
 
-    await handleMining()
-  }, [autoBoostLevel, miningStreak, handleMining])
+    handleMining()
+  }
 
   return (
     <div className="home-view">
       <div className="mining-stats">
         <div className="stat-item">
-          <span className="stat-label">Mining Power</span>
+          <span className="stat-label">Mining Gücü</span>
           <span className="stat-value">x{autoBoostLevel * 2}</span>
         </div>
         <div className="stat-item">
-          <span className="stat-label">Points Balance</span>
-          <span className="stat-value">{displayPoints.toLocaleString()}</span>
-        </div>
-        <div className="stat-item">
-          <span className="stat-label">Mining Streak</span>
-          <span className="stat-value">x{miningStreak + 1}</span>
+          <span className="stat-label">VLT Bakiye</span>
+          <span className="stat-value">{user?.points?.toLocaleString() || '0'} VLT</span>
         </div>
       </div>
       <div className="crystal-container">
@@ -87,7 +60,7 @@ const HomeView = ({ user, handleMining, isRotating, miningStreak, autoBoostLevel
           style={{ touchAction: 'manipulation' }}
         >
           <div className="mining-circle">
-            <img src={miningIconUrl} alt="Mining" className="mining-image" />
+            <img src={miningIconUrl} alt="Veltura" className="mining-image" />
             {miningPoints.map(point => (
               <div
                 key={point.id}
@@ -108,16 +81,6 @@ const HomeView = ({ user, handleMining, isRotating, miningStreak, autoBoostLevel
 }
 
 const BoostView = ({ user, autoBoostLevel, handleBoostUpgrade }) => {
-  const [displayPoints, setDisplayPoints] = useState(user?.points || 0)
-  const pointsRef = useRef(user?.points || 0)
-
-  useEffect(() => {
-    if (user?.points !== undefined && user.points !== pointsRef.current) {
-      pointsRef.current = user.points
-      setDisplayPoints(user.points)
-    }
-  }, [user?.points])
-
   const boosts = [
     { level: 1, cost: 1000, multiplier: 2 },
     { level: 2, cost: 5000, multiplier: 5 },
@@ -128,19 +91,19 @@ const BoostView = ({ user, autoBoostLevel, handleBoostUpgrade }) => {
 
   return (
     <div className="boost-view">
-      <h2>Mining Upgrades</h2>
+      <h2>Mining Yükseltmeleri</h2>
       <div className="boost-grid">
         {boosts.map((boost) => (
           <div key={boost.level} className={`boost-card ${autoBoostLevel >= boost.level ? 'owned' : ''}`}>
-            <div className="boost-header">Level {boost.level}</div>
+            <div className="boost-header">Seviye {boost.level}</div>
             <div className="boost-content">
               <span className="multiplier">×{boost.multiplier}</span>
               <button
                 onClick={() => handleBoostUpgrade(boost.level, boost.cost)}
-                disabled={autoBoostLevel >= boost.level || displayPoints < boost.cost}
+                disabled={autoBoostLevel >= boost.level || (user?.points || 0) < boost.cost}
                 className="upgrade-button"
               >
-                {autoBoostLevel >= boost.level ? 'Owned' : `${boost.cost.toLocaleString()} Points`}
+                {autoBoostLevel >= boost.level ? 'Sahipsin' : `${boost.cost.toLocaleString()} VLT`}
               </button>
             </div>
           </div>
@@ -156,18 +119,18 @@ const FriendsView = ({ user, handleShare }) => {
       <div className="referral-stats">
         <div className="stat-box">
           <span className="stat-value">{user?.referralCount || 0}</span>
-          <span className="stat-label">Total Referrals</span>
+          <span className="stat-label">Toplam Referans</span>
         </div>
         <div className="stat-box">
           <span className="stat-value">50,000</span>
-          <span className="stat-label">Points Per Referral</span>
+          <span className="stat-label">Referans Başına VLT</span>
         </div>
       </div>
       <div className="referral-card">
-        <h3>Invite Friends</h3>
-        <p>Share your link and earn 50,000 Points for each friend!</p>
+        <h3>Arkadaşlarını Davet Et</h3>
+        <p>Linkini paylaş ve her arkadaşın için 50,000 VLT kazan!</p>
         <button onClick={handleShare} className="share-button">
-          <span>Share on Telegram</span>
+          <span>Telegram'da Paylaş</span>
           <span className="share-icon">📤</span>
         </button>
       </div>
@@ -177,21 +140,12 @@ const FriendsView = ({ user, handleShare }) => {
 
 const EarnView = ({ user }) => {
   const [claimedRewards, setClaimedRewards] = useState(() => {
-    if (typeof window !== 'undefined' && user?.telegramId) {
-      return JSON.parse(localStorage.getItem(`claimedRewards_${user.telegramId}`) || '{}')
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(`claimedRewards_${user?.telegramId}`)
+      return saved ? JSON.parse(saved) : {}
     }
     return {}
   })
-
-  const [displayPoints, setDisplayPoints] = useState(user?.points || 0)
-  const pointsRef = useRef(user?.points || 0)
-
-  useEffect(() => {
-    if (user?.points !== undefined && user.points !== pointsRef.current) {
-      pointsRef.current = user.points
-      setDisplayPoints(user.points)
-    }
-  }, [user?.points])
 
   const socialMedia = [
     {
@@ -218,6 +172,8 @@ const EarnView = ({ user }) => {
     if (!user?.telegramId) return
 
     try {
+      window.open(platform.url, '_blank')
+      
       const response = await fetch('/api/claim-social-reward', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -235,32 +191,29 @@ const EarnView = ({ user }) => {
         }
         setClaimedRewards(newClaimedRewards)
         localStorage.setItem(`claimedRewards_${user.telegramId}`, JSON.stringify(newClaimedRewards))
-        window.open(platform.url, '_blank')
+        
+        window.location.reload()
       }
     } catch (error) {
-      console.error('Failed to claim reward:', error)
+      console.error('Ödül alınamadı:', error)
     }
   }
 
   return (
     <div className="earn-view">
-      <h2>Earn Points</h2>
+      <h2>VLT Kazan</h2>
       <div className="social-grid">
         {socialMedia.map((platform) => (
           <div key={platform.name} className="social-card">
             <img src={platform.icon} alt={platform.name} className="social-icon" />
             <h3>{platform.name}</h3>
-            <p>{platform.reward.toLocaleString()} Points</p>
+            <p>{platform.reward.toLocaleString()} VLT</p>
             <button
               onClick={() => handleSocialClick(platform)}
               className={`social-button ${claimedRewards[platform.name] ? 'claimed' : ''}`}
               disabled={claimedRewards[platform.name]}
-              style={{
-                backgroundColor: claimedRewards[platform.name] ? '#2c3e50' : '',
-                cursor: claimedRewards[platform.name] ? 'not-allowed' : 'pointer'
-              }}
             >
-              {claimedRewards[platform.name] ? 'Claimed' : 'Follow & Earn'}
+              {claimedRewards[platform.name] ? 'Alındı' : 'Takip Et & Kazan'}
             </button>
           </div>
         ))}
@@ -277,28 +230,28 @@ const Navigation = ({ currentView, setCurrentView }) => {
         className={`nav-button ${currentView === 'home' ? 'active' : ''}`}
       >
         <span className="nav-icon">💎</span>
-        <span className="nav-text">Mine</span>
+        <span className="nav-text">Madencilik</span>
       </button>
       <button
         onClick={() => setCurrentView('boost')}
         className={`nav-button ${currentView === 'boost' ? 'active' : ''}`}
       >
         <span className="nav-icon">⚡</span>
-        <span className="nav-text">Boost</span>
+        <span className="nav-text">Güçlendir</span>
       </button>
       <button
         onClick={() => setCurrentView('friends')}
         className={`nav-button ${currentView === 'friends' ? 'active' : ''}`}
       >
         <span className="nav-icon">👥</span>
-        <span className="nav-text">Friends</span>
+        <span className="nav-text">Arkadaşlar</span>
       </button>
       <button
         onClick={() => setCurrentView('earn')}
         className={`nav-button ${currentView === 'earn' ? 'active' : ''}`}
       >
         <span className="nav-icon">🎁</span>
-        <span className="nav-text">Earn</span>
+        <span className="nav-text">Kazan</span>
       </button>
     </nav>
   )
@@ -308,31 +261,24 @@ const SettingsModal = ({ onClose, user }) => {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={e => e.stopPropagation()}>
-        <h2>Settings</h2>
+        <h2>Ayarlar</h2>
         <div className="settings-list">
           <div className="setting-item">
-            <span>Language</span>
-            <select defaultValue="en">
+            <span>Dil</span>
+            <select defaultValue="tr">
               <option value="en">English</option>
               <option value="tr">Türkçe</option>
             </select>
           </div>
           <div className="setting-item">
-            <span>Animations</span>
-            <label className="switch">
-              <input type="checkbox" defaultChecked />
-              <span className="slider"></span>
-            </label>
-          </div>
-          <div className="setting-item">
-            <span>Sound Effects</span>
+            <span>Animasyonlar</span>
             <label className="switch">
               <input type="checkbox" defaultChecked />
               <span className="slider"></span>
             </label>
           </div>
         </div>
-        <button onClick={onClose} className="close-button">Close</button>
+        <button onClick={onClose} className="close-button">Kapat</button>
       </div>
     </div>
   )
