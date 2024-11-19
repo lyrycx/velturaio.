@@ -51,15 +51,15 @@ export default function Page() {
   useEffect(() => {
     setMounted(true)
     initializeTelegram()
-  }, [])
 
-  useEffect(() => {
-    if (user?.telegramId) {
-      const interval = setInterval(() => {
+    // Periodic user data refresh
+    const interval = setInterval(() => {
+      if (user?.telegramId) {
         refreshUserData(user.telegramId)
-      }, 3000)
-      return () => clearInterval(interval)
-    }
+      }
+    }, 1000)
+
+    return () => clearInterval(interval)
   }, [user?.telegramId])
 
   const refreshUserData = async (telegramId: number) => {
@@ -117,7 +117,7 @@ export default function Page() {
     setTimeout(() => setIsRotating(false), 300)
 
     try {
-      const pointsToAdd = autoBoostLevel * (miningStreak + 1)
+      const pointsToAdd = autoBoostLevel * 2 * (miningStreak + 1)
       
       const response = await fetch('/api/increase-points', {
         method: 'POST',
