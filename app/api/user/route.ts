@@ -6,6 +6,10 @@ export async function POST(req) {
     const data = await req.json()
     const { id, username, first_name, last_name } = data
 
+    if (!id) {
+      return NextResponse.json({ error: 'Telegram ID is required' }, { status: 400 })
+    }
+
     const user = await prisma.user.upsert({
       where: { 
         telegramId: id 
