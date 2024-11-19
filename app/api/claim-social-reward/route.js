@@ -3,15 +3,17 @@ import { NextResponse } from 'next/server'
 
 const prisma = new PrismaClient()
 
-export async function POST(req: Request) {
-  const { telegramId, platform, reward } = await req.json()
+export async function POST(req) {
+  const data = await req.json()
+  const telegramId = data.telegramId
+  const platform = data.platform
+  const reward = data.reward
 
   try {
-    // Check if reward was already claimed
     const existingClaim = await prisma.socialReward.findFirst({
       where: {
-        telegramId: telegramId,
-        platform: platform
+        telegramId,
+        platform
       }
     })
 
@@ -19,21 +21,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Reward already claimed' }, { status: 400 })
     }
 
-    // Start a transaction to ensure both operations complete
     const result = await prisma.$transaction(async (tx) => {
-      // Create reward claim record
       await tx.socialReward.create({
         data: {
-          telegramId: telegramId,
-          platform: platform,
-          reward: reward,
+          telegramId,
+          platform,
+          reward,
           claimedAt: new Date()
         }
       })
 
-      // Update user points
       const updatedUser = await tx.user.update({
-        where: { telegramId: telegramId },
+        where: { telegramId },
         data: {
           points: { increment: reward },
           lastSeen: new Date()
