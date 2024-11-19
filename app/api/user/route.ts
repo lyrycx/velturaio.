@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 
 const prisma = new PrismaClient()
 
+<<<<<<< HEAD
 interface TelegramUser {
   id: number
   username?: string
@@ -13,6 +14,11 @@ interface TelegramUser {
 export async function POST(req: Request) {
   try {
     const data: TelegramUser = await req.json()
+=======
+export async function POST(req) {
+  try {
+    const data = await req.json()
+>>>>>>> b06b03dcdeb90af6469a1553308b9a611f3abd39
     const { id, username, first_name, last_name } = data
 
     const user = await prisma.user.upsert({
