@@ -151,16 +151,6 @@ const BoostView = ({ user, autoBoostLevel, handleBoostUpgrade }) => {
 }
 
 const FriendsView = ({ user, handleShare }) => {
-  const [displayPoints, setDisplayPoints] = useState(user?.points || 0)
-  const pointsRef = useRef(user?.points || 0)
-
-  useEffect(() => {
-    if (user?.points !== undefined && user.points !== pointsRef.current) {
-      pointsRef.current = user.points
-      setDisplayPoints(user.points)
-    }
-  }, [user?.points])
-
   return (
     <div className="friends-view">
       <div className="referral-stats">
@@ -227,18 +217,8 @@ const EarnView = ({ user }) => {
   const handleSocialClick = async (platform) => {
     if (!user?.telegramId) return
 
-    const newClaimedRewards = {
-      ...claimedRewards,
-      [platform.name]: true
-    }
-   
-    setClaimedRewards(newClaimedRewards)
-    localStorage.setItem(`claimedRewards_${user.telegramId}`, JSON.stringify(newClaimedRewards))
-
-    window.open(platform.url, '_blank')
-
     try {
-      await fetch('/api/claim-social-reward', {
+      const response = await fetch('/api/claim-social-reward', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -247,6 +227,16 @@ const EarnView = ({ user }) => {
           reward: platform.reward
         })
       })
+
+      if (response.ok) {
+        const newClaimedRewards = {
+          ...claimedRewards,
+          [platform.name]: true
+        }
+        setClaimedRewards(newClaimedRewards)
+        localStorage.setItem(`claimedRewards_${user.telegramId}`, JSON.stringify(newClaimedRewards))
+        window.open(platform.url, '_blank')
+      }
     } catch (error) {
       console.error('Failed to claim reward:', error)
     }
@@ -326,7 +316,8 @@ const SettingsModal = ({ onClose, user }) => {
               <option value="en">English</option>
               <option value="tr">Türkçe</option>
             </select>
-                    <div className="setting-item">
+          </div>
+          <div className="setting-item">
             <span>Animations</span>
             <label className="switch">
               <input type="checkbox" defaultChecked />
@@ -356,4 +347,3 @@ export {
   Navigation,
   SettingsModal
 }
-
