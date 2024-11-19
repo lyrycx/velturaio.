@@ -1,15 +1,21 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 
 const Header = ({ user, showSettings, setShowSettings }) => {
+  const [displayPoints, setDisplayPoints] = useState(user?.points || 0)
+
+  useEffect(() => {
+    setDisplayPoints(user?.points || 0)
+  }, [user?.points])
+
   return (
     <header className="game-header">
       <div className="user-info">
         <div className="avatar">{user?.firstName?.[0] || '👤'}</div>
         <div className="user-details">
           <h2>{user?.firstName || 'Crypto Miner'}</h2>
-          <p>{user?.points || 0} Points</p>
+          <p>{displayPoints.toLocaleString()} Points</p>
         </div>
       </div>
       <button onClick={() => setShowSettings(!showSettings)} className="settings-button">⚙️</button>
@@ -19,35 +25,35 @@ const Header = ({ user, showSettings, setShowSettings }) => {
 
 const HomeView = ({ user, handleMining, isRotating, miningStreak, autoBoostLevel }) => {
   const [miningPoints, setMiningPoints] = useState([])
-  const [points, setPoints] = useState(user?.points || 0)
+  const [displayPoints, setDisplayPoints] = useState(user?.points || 0)
   const miningIconUrl = "https://r.resimlink.com/vXD2MproiNHm.png"
 
   useEffect(() => {
-    if (user?.points) {
-      setPoints(user.points)
-    }
+    setDisplayPoints(user?.points || 0)
   }, [user?.points])
 
-  const handleMiningClick = (e) => {
+  const handleMiningClick = useCallback(async (e) => {
     const rect = e.currentTarget.getBoundingClientRect()
     const x = e.clientX - rect.left
     const y = e.clientY - rect.top
    
-    const newPoints = autoBoostLevel * 2
-    setPoints(prev => prev + newPoints)
+    const points = autoBoostLevel * 2 * (miningStreak + 1)
+    
     setMiningPoints(prev => [...prev, {
       x,
       y,
-      points: `+${newPoints} Points`,
+      points: `+${points} Points`,
       id: Date.now()
     }])
 
+    setDisplayPoints(prev => prev + points)
+
     setTimeout(() => {
-      setMiningPoints(prev => prev.slice(1))
+      setMiningPoints(prev => prev.filter(point => point.id !== Date.now()))
     }, 1000)
 
-    handleMining()
-  }
+    await handleMining()
+  }, [autoBoostLevel, miningStreak, handleMining])
 
   return (
     <div className="home-view">
@@ -57,8 +63,12 @@ const HomeView = ({ user, handleMining, isRotating, miningStreak, autoBoostLevel
           <span className="stat-value">x{autoBoostLevel * 2}</span>
         </div>
         <div className="stat-item">
-          <span className="stat-label">Points</span>
-          <span className="stat-value">{points}</span>
+          <span className="stat-label">Points Balance</span>
+          <span className="stat-value">{displayPoints.toLocaleString()}</span>
+        </div>
+        <div className="stat-item">
+          <span className="stat-label">Mining Streak</span>
+          <span className="stat-value">x{miningStreak + 1}</span>
         </div>
       </div>
       <div className="crystal-container">
@@ -68,7 +78,7 @@ const HomeView = ({ user, handleMining, isRotating, miningStreak, autoBoostLevel
           style={{ touchAction: 'manipulation' }}
         >
           <div className="mining-circle">
-            <img src={miningIconUrl} alt="Veltura" className="mining-image" />
+            <img src={miningIconUrl} alt="Mining" className="mining-image" />
             {miningPoints.map(point => (
               <div
                 key={point.id}
@@ -89,6 +99,12 @@ const HomeView = ({ user, handleMining, isRotating, miningStreak, autoBoostLevel
 }
 
 const BoostView = ({ user, autoBoostLevel, handleBoostUpgrade }) => {
+  const [displayPoints, setDisplayPoints] = useState(user?.points || 0)
+
+  useEffect(() => {
+    setDisplayPoints(user?.points || 0)
+  }, [user?.points])
+
   const boosts = [
     { level: 1, cost: 1000, multiplier: 2 },
     { level: 2, cost: 5000, multiplier: 5 },
@@ -108,10 +124,10 @@ const BoostView = ({ user, autoBoostLevel, handleBoostUpgrade }) => {
               <span className="multiplier">×{boost.multiplier}</span>
               <button
                 onClick={() => handleBoostUpgrade(boost.level, boost.cost)}
-                disabled={autoBoostLevel >= boost.level || (user?.points || 0) < boost.cost}
+                disabled={autoBoostLevel >= boost.level || displayPoints < boost.cost}
                 className="upgrade-button"
               >
-                {autoBoostLevel >= boost.level ? 'Owned' : `${boost.cost} Points`}
+                {autoBoostLevel >= boost.level ? 'Owned' : `${boost.cost.toLocaleString()} Points`}
               </button>
             </div>
           </div>
@@ -148,9 +164,8 @@ const FriendsView = ({ user, handleShare }) => {
 
 const EarnView = ({ user }) => {
   const [claimedRewards, setClaimedRewards] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem(`claimedRewards_${user?.telegramId}`)
-      return saved ? JSON.parse(saved) : {}
+    if (typeof window !== 'undefined' && user?.telegramId) {
+      return JSON.parse(localStorage.getItem(`claimedRewards_${user.telegramId}`) || '{}')
     }
     return {}
   })
@@ -177,13 +192,15 @@ const EarnView = ({ user }) => {
   ]
 
   const handleSocialClick = async (platform) => {
+    if (!user?.telegramId) return
+
     const newClaimedRewards = {
       ...claimedRewards,
       [platform.name]: true
     }
    
     setClaimedRewards(newClaimedRewards)
-    localStorage.setItem(`claimedRewards_${user?.telegramId}`, JSON.stringify(newClaimedRewards))
+    localStorage.setItem(`claimedRewards_${user.telegramId}`, JSON.stringify(newClaimedRewards))
 
     window.open(platform.url, '_blank')
 
@@ -192,7 +209,7 @@ const EarnView = ({ user }) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          telegramId: user?.telegramId,
+          telegramId: user.telegramId,
           platform: platform.name,
           reward: platform.reward
         })
@@ -210,7 +227,7 @@ const EarnView = ({ user }) => {
           <div key={platform.name} className="social-card">
             <img src={platform.icon} alt={platform.name} className="social-icon" />
             <h3>{platform.name}</h3>
-            <p>{platform.reward} Points</p>
+            <p>{platform.reward.toLocaleString()} Points</p>
             <button
               onClick={() => handleSocialClick(platform)}
               className={`social-button ${claimedRewards[platform.name] ? 'claimed' : ''}`}

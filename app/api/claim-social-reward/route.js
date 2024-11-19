@@ -1,30 +1,50 @@
+import { PrismaClient } from '@prisma/client'
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+
+const prisma = new PrismaClient()
 
 export async function POST(req) {
-    try {
-        const { telegramId, platform } = await req.json()
+  const data = await req.json()
+  const telegramId = data.telegramId
+  const platform = data.platform
+  const reward = data.reward
 
-        if (!telegramId || !platform) {
-            return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
-        }
+  try {
+    const existingClaim = await prisma.socialReward.findFirst({
+      where: {
+        telegramId,
+        platform
+      }
+    })
 
-        const updatedUser = await prisma.user.update({
-            where: { telegramId: parseInt(telegramId) },
-            data: { 
-                points: { increment: 5000 },
-                [`${platform.toLowerCase()}Claimed`]: true
-            }
-        })
-
-        return NextResponse.json({ 
-            success: true, 
-            points: updatedUser.points 
-        })
-    } catch (error) {
-        console.error('Error claiming social reward:', error)
-        return NextResponse.json({ 
-            error: 'Failed to process reward' 
-        }, { status: 500 })
+    if (existingClaim) {
+      return NextResponse.json({ error: 'Reward already claimed' }, { status: 400 })
     }
+
+    const result = await prisma.$transaction(async (tx) => {
+      await tx.socialReward.create({
+        data: {
+          telegramId,
+          platform,
+          reward,
+          claimedAt: new Date()
+        }
+      })
+
+      const updatedUser = await tx.user.update({
+        where: { telegramId },
+        data: {
+          points: { increment: reward },
+          lastSeen: new Date()
+        }
+      })
+
+      return updatedUser
+    })
+
+    return NextResponse.json(result)
+  } catch (error) {
+    console.error('Failed to process reward:', error)
+    return NextResponse.json({ error: 'Failed to process reward' }, { status: 500 })
+  }
 }

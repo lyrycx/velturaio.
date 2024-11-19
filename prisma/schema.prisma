@@ -8,15 +8,25 @@ generator client {
 }
 
 model User {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  telegramId    Int     @unique
+  username      String?
+  firstName     String?
+  lastName      String?
+  points        Int     @default(0)
+  referralCount Int     @default(0)
+  autoBoostLevel Int    @default(1)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  lastSeen      DateTime @default(now())
+}
+
+model SocialReward {
   id         String   @id @default(auto()) @map("_id") @db.ObjectId
-  telegramId Int      @unique
-  username   String?
-  firstName  String?
-  lastName   String?
-  points     Int      @default(0)
-  totalMined Int      @default(0)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  friends    Int      @default(0)
-  hasUsedReferral Boolean  @default(false)
+  telegramId Int
+  platform   String
+  reward     Int
+  claimedAt  DateTime @default(now())
+
+  @@unique([telegramId, platform])
 }

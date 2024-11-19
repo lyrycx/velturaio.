@@ -1,28 +1,51 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { PrismaClient } from '@prisma/client'
+import { NextResponse } from 'next/server'
 
-export async function POST(req: NextRequest) {
-    try {
-        const { telegramId, platform } = await req.json()
+const prisma = new PrismaClient()
 
-        if (!telegramId || !platform) {
-            return NextResponse.json({ error: 'Invalid data' }, { status: 400 })
-        }
+export async function POST(req: Request) {
+  const { telegramId, platform, reward } = await req.json()
 
-        const user = await prisma.user.update({
-            where: { telegramId },
-            data: {
-                points: { increment: 25000 }
-            }
-        })
+  try {
+    // Check if reward was already claimed
+    const existingClaim = await prisma.socialReward.findFirst({
+      where: {
+        telegramId: telegramId,
+        platform: platform
+      }
+    })
 
-        return NextResponse.json({ 
-            success: true, 
-            points: user.points,
-            message: `Claimed ${platform} reward successfully!` 
-        })
-    } catch (error) {
-        console.error('Error claiming social reward:', error)
-        return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    if (existingClaim) {
+      return NextResponse.json({ error: 'Reward already claimed' }, { status: 400 })
     }
+
+    // Start a transaction to ensure both operations complete
+    const result = await prisma.$transaction(async (tx) => {
+      // Create reward claim record
+      await tx.socialReward.create({
+        data: {
+          telegramId: telegramId,
+          platform: platform,
+          reward: reward,
+          claimedAt: new Date()
+        }
+      })
+
+      // Update user points
+      const updatedUser = await tx.user.update({
+        where: { telegramId: telegramId },
+        data: {
+          points: { increment: reward },
+          lastSeen: new Date()
+        }
+      })
+
+      return updatedUser
+    })
+
+    return NextResponse.json(result)
+  } catch (error) {
+    console.error('Failed to process reward:', error)
+    return NextResponse.json({ error: 'Failed to process reward' }, { status: 500 })
+  }
 }
