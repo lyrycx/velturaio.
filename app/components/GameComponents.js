@@ -1,12 +1,16 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 
 const Header = ({ user, showSettings, setShowSettings }) => {
   const [displayPoints, setDisplayPoints] = useState(user?.points || 0)
+  const pointsRef = useRef(user?.points || 0)
 
   useEffect(() => {
-    setDisplayPoints(user?.points || 0)
+    if (user?.points !== undefined && user.points !== pointsRef.current) {
+      pointsRef.current = user.points
+      setDisplayPoints(user.points)
+    }
   }, [user?.points])
 
   return (
@@ -26,10 +30,14 @@ const Header = ({ user, showSettings, setShowSettings }) => {
 const HomeView = ({ user, handleMining, isRotating, miningStreak, autoBoostLevel }) => {
   const [miningPoints, setMiningPoints] = useState([])
   const [displayPoints, setDisplayPoints] = useState(user?.points || 0)
+  const pointsRef = useRef(user?.points || 0)
   const miningIconUrl = "https://r.resimlink.com/vXD2MproiNHm.png"
 
   useEffect(() => {
-    setDisplayPoints(user?.points || 0)
+    if (user?.points !== undefined && user.points !== pointsRef.current) {
+      pointsRef.current = user.points
+      setDisplayPoints(user.points)
+    }
   }, [user?.points])
 
   const handleMiningClick = useCallback(async (e) => {
@@ -39,17 +47,18 @@ const HomeView = ({ user, handleMining, isRotating, miningStreak, autoBoostLevel
    
     const points = autoBoostLevel * 2 * (miningStreak + 1)
     
-    setMiningPoints(prev => [...prev, {
+    const newPoint = {
       x,
       y,
       points: `+${points} Points`,
       id: Date.now()
-    }])
-
+    }
+    
+    setMiningPoints(prev => [...prev, newPoint])
     setDisplayPoints(prev => prev + points)
 
     setTimeout(() => {
-      setMiningPoints(prev => prev.filter(point => point.id !== Date.now()))
+      setMiningPoints(prev => prev.filter(point => point.id !== newPoint.id))
     }, 1000)
 
     await handleMining()
@@ -100,9 +109,13 @@ const HomeView = ({ user, handleMining, isRotating, miningStreak, autoBoostLevel
 
 const BoostView = ({ user, autoBoostLevel, handleBoostUpgrade }) => {
   const [displayPoints, setDisplayPoints] = useState(user?.points || 0)
+  const pointsRef = useRef(user?.points || 0)
 
   useEffect(() => {
-    setDisplayPoints(user?.points || 0)
+    if (user?.points !== undefined && user.points !== pointsRef.current) {
+      pointsRef.current = user.points
+      setDisplayPoints(user.points)
+    }
   }, [user?.points])
 
   const boosts = [
@@ -138,6 +151,16 @@ const BoostView = ({ user, autoBoostLevel, handleBoostUpgrade }) => {
 }
 
 const FriendsView = ({ user, handleShare }) => {
+  const [displayPoints, setDisplayPoints] = useState(user?.points || 0)
+  const pointsRef = useRef(user?.points || 0)
+
+  useEffect(() => {
+    if (user?.points !== undefined && user.points !== pointsRef.current) {
+      pointsRef.current = user.points
+      setDisplayPoints(user.points)
+    }
+  }, [user?.points])
+
   return (
     <div className="friends-view">
       <div className="referral-stats">
@@ -169,6 +192,16 @@ const EarnView = ({ user }) => {
     }
     return {}
   })
+
+  const [displayPoints, setDisplayPoints] = useState(user?.points || 0)
+  const pointsRef = useRef(user?.points || 0)
+
+  useEffect(() => {
+    if (user?.points !== undefined && user.points !== pointsRef.current) {
+      pointsRef.current = user.points
+      setDisplayPoints(user.points)
+    }
+  }, [user?.points])
 
   const socialMedia = [
     {
@@ -293,9 +326,15 @@ const SettingsModal = ({ onClose, user }) => {
               <option value="en">English</option>
               <option value="tr">Türkçe</option>
             </select>
+                    <div className="setting-item">
+            <span>Animations</span>
+            <label className="switch">
+              <input type="checkbox" defaultChecked />
+              <span className="slider"></span>
+            </label>
           </div>
           <div className="setting-item">
-            <span>Animations</span>
+            <span>Sound Effects</span>
             <label className="switch">
               <input type="checkbox" defaultChecked />
               <span className="slider"></span>
@@ -317,3 +356,4 @@ export {
   Navigation,
   SettingsModal
 }
+
