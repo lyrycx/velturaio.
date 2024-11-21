@@ -3,11 +3,9 @@ import { NextResponse } from 'next/server'
 
 export async function POST(req) {
   try {
-    const data = await req.json()
-    const telegramId = data.telegramId
-    const points = data.points
+    const { telegramId, points } = await req.json()
 
-    const user = await prisma.user.update({
+    const updatedUser = await prisma.user.update({
       where: { telegramId },
       data: {
         points: { increment: points },
@@ -15,9 +13,9 @@ export async function POST(req) {
       }
     })
 
-    return NextResponse.json(user)
+    return NextResponse.json(updatedUser)
   } catch (error) {
-    console.error('Failed to increase points:', error)
-    return NextResponse.json({ error: 'Failed to increase points' }, { status: 500 })
+    console.error('Mining hatası:', error)
+    return NextResponse.json({ error: 'İşlem başarısız' }, { status: 500 })
   }
 }

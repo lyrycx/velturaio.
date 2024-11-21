@@ -1,14 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { Header, HomeView, BoostView, FriendsView, EarnView, Navigation, SettingsModal } from './components/GameComponents'
-
-interface TelegramUser {
-  id: number
-  username?: string
-  first_name?: string
-  last_name?: string
-}
 
 interface User {
   id: string
@@ -20,110 +13,55 @@ interface User {
   referralCount: number
   autoBoostLevel: number
   lastSeen: Date
-  referrerId?: number
-}
-
-declare global {
-  interface Window {
-    Telegram: {
-      WebApp: {
-        ready: () => void
-        expand: () => void
-        initDataUnsafe: {
-          user: TelegramUser
-          start_param?: string
-        }
-        switchInlineQuery: (query: string) => void
-        MainButton: {
-          show: () => void
-          hide: () => void
-          setText: (text: string) => void
-          onClick: (fn: () => void) => void
-        }
-      }
-    }
-  }
 }
 
 export default function Home() {
   const [user, setUser] = useState<User | null>(null)
-  const [currentView, setCurrentView] = useState<'home' | 'boost' | 'friends' | 'earn'>('home')
-  const [showSettings, setShowSettings] = useState<boolean>(false)
-  const [isRotating, setIsRotating] = useState<boolean>(false)
-  const [miningStreak, setMiningStreak] = useState<number>(0)
-  const [autoBoostLevel, setAutoBoostLevel] = useState<number>(1)
-  const [lastMiningTime, setLastMiningTime] = useState<number>(0)
+  const [currentView, setCurrentView] = useState('home')
+  const [showSettings, setShowSettings] = useState(false)
+  const [isRotating, setIsRotating] = useState(false)
+  const [miningStreak, setMiningStreak] = useState(0)
+  const [autoBoostLevel, setAutoBoostLevel] = useState(1)
+  const [lastMiningTime, setLastMiningTime] = useState(0)
+  const [isMining, setIsMining] = useState(false)
+
+  const fetchUserData = useCallback(async () => {
+    const telegram = window.Telegram.WebApp
+    try {
+      const response = await fetch('/api/user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(telegram.initDataUnsafe.user)
+      })
+      if (response.ok) {
+        const userData = await response.json()
+        setUser(userData)
+        setAutoBoostLevel(userData.autoBoostLevel)
+      }
+    } catch (error) {
+      console.error('Kullanıcı yüklenemedi:', error)
+    }
+  }, [])
 
   useEffect(() => {
     const telegram = window.Telegram.WebApp
     telegram.ready()
     telegram.expand()
+    fetchUserData()
 
-    const fetchUser = async () => {
-      try {
-        const userData = {
-          ...telegram.initDataUnsafe.user,
-          referrerId: telegram.initDataUnsafe.start_param 
-            ? parseInt(telegram.initDataUnsafe.start_param) 
-            : undefined
-        }
-
-        const response = await fetch('/api/user', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(userData)
-        })
-
-        if (response.ok) {
-          const userData: User = await response.json()
-          setUser(userData)
-          setAutoBoostLevel(userData.autoBoostLevel || 1)
-
-          // Referral ödülü
-          if (telegram.initDataUnsafe.start_param && userData.referrerId) {
-            await fetch('/api/claim-referral', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                telegramId: userData.telegramId,
-                referrerId: userData.referrerId
-              })
-            })
-          }
-        }
-      } catch (error) {
-        console.error('Kullanıcı yüklenemedi:', error)
-      }
-    }
-
-    fetchUser()
-
-    const keepAlive = setInterval(async () => {
-      if (user?.telegramId) {
-        try {
-          await fetch('/api/keep-alive', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ telegramId: user.telegramId })
-          })
-        } catch (error) {
-          console.error('Keep-alive başarısız:', error)
-        }
-      }
-    }, 30000)
-
+    const keepAlive = setInterval(fetchUserData, 30000)
     return () => clearInterval(keepAlive)
-  }, [])
+  }, [fetchUserData])
 
   const handleMining = async () => {
-    if (!user?.telegramId) return
+    if (!user?.telegramId || isMining) return
 
     const currentTime = Date.now()
-    if (currentTime - lastMiningTime < 100) return // Anti-spam
+    if (currentTime - lastMiningTime < 200) return
+    
+    setIsMining(true)
     setLastMiningTime(currentTime)
-
     setIsRotating(true)
-    setTimeout(() => setIsRotating(false), 100)
 
     try {
       const points = autoBoostLevel * 2
@@ -143,6 +81,11 @@ export default function Home() {
       }
     } catch (error) {
       console.error('Mining başarısız:', error)
+    } finally {
+      setTimeout(() => {
+        setIsRotating(false)
+        setIsMining(false)
+      }, 100)
     }
   }
 
@@ -164,6 +107,7 @@ export default function Home() {
         const updatedUser = await response.json()
         setUser(updatedUser)
         setAutoBoostLevel(level)
+        await fetchUserData()
       }
     } catch (error) {
       console.error('Yükseltme başarısız:', error)
@@ -195,7 +139,7 @@ export default function Home() {
         />
       )}
       {currentView === 'friends' && <FriendsView user={user} handleShare={handleShare} />}
-      {currentView === 'earn' && <EarnView user={user} />}
+      {currentView === 'earn' && <EarnView user={user} onRewardClaimed={fetchUserData} />}
       <Navigation currentView={currentView} setCurrentView={setCurrentView} />
       {showSettings && <SettingsModal onClose={() => setShowSettings(false)} user={user} />}
     </main>

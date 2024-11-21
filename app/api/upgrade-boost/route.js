@@ -3,12 +3,17 @@ import { NextResponse } from 'next/server'
 
 export async function POST(req) {
   try {
-    const data = await req.json()
-    const telegramId = data.telegramId
-    const level = data.level
-    const cost = data.cost
+    const { telegramId, level, cost } = await req.json()
 
-    const user = await prisma.user.update({
+    const user = await prisma.user.findUnique({
+      where: { telegramId }
+    })
+
+    if (!user || user.points < cost) {
+      return NextResponse.json({ error: 'Yetersiz bakiye' }, { status: 400 })
+    }
+
+    const updatedUser = await prisma.user.update({
       where: { telegramId },
       data: {
         points: { decrement: cost },
@@ -17,9 +22,9 @@ export async function POST(req) {
       }
     })
 
-    return NextResponse.json(user)
+    return NextResponse.json(updatedUser)
   } catch (error) {
-    console.error('Failed to upgrade boost:', error)
-    return NextResponse.json({ error: 'Failed to upgrade boost' }, { status: 500 })
+    console.error('Boost yükseltme hatası:', error)
+    return NextResponse.json({ error: 'İşlem başarısız' }, { status: 500 })
   }
 }

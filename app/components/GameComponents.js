@@ -89,6 +89,15 @@ const BoostView = ({ user, autoBoostLevel, handleBoostUpgrade }) => {
     { level: 5, cost: 500000, multiplier: 50 }
   ]
 
+  const [isProcessing, setIsProcessing] = useState(false)
+
+  const handleUpgrade = async (level, cost) => {
+    if (isProcessing) return
+    setIsProcessing(true)
+    await handleBoostUpgrade(level, cost)
+    setIsProcessing(false)
+  }
+
   return (
     <div className="boost-view">
       <h2>Mining Yükseltmeleri</h2>
@@ -99,8 +108,8 @@ const BoostView = ({ user, autoBoostLevel, handleBoostUpgrade }) => {
             <div className="boost-content">
               <span className="multiplier">×{boost.multiplier}</span>
               <button
-                onClick={() => handleBoostUpgrade(boost.level, boost.cost)}
-                disabled={autoBoostLevel >= boost.level || (user?.points || 0) < boost.cost}
+                onClick={() => handleUpgrade(boost.level, boost.cost)}
+                disabled={autoBoostLevel >= boost.level || (user?.points || 0) < boost.cost || isProcessing}
                 className="upgrade-button"
               >
                 {autoBoostLevel >= boost.level ? 'Sahipsin' : `${boost.cost.toLocaleString()} VLT`}
@@ -138,7 +147,7 @@ const FriendsView = ({ user, handleShare }) => {
   )
 }
 
-const EarnView = ({ user }) => {
+const EarnView = ({ user, onRewardClaimed }) => {
   const [claimedRewards, setClaimedRewards] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem(`claimedRewards_${user?.telegramId}`)
@@ -146,6 +155,8 @@ const EarnView = ({ user }) => {
     }
     return {}
   })
+
+  const [isProcessing, setIsProcessing] = useState(false)
 
   const socialMedia = [
     {
@@ -169,8 +180,10 @@ const EarnView = ({ user }) => {
   ]
 
   const handleSocialClick = async (platform) => {
-    if (!user?.telegramId) return
-
+    if (!user?.telegramId || isProcessing || claimedRewards[platform.name]) return
+    
+    setIsProcessing(true)
+    
     try {
       window.open(platform.url, '_blank')
       
@@ -192,10 +205,14 @@ const EarnView = ({ user }) => {
         setClaimedRewards(newClaimedRewards)
         localStorage.setItem(`claimedRewards_${user.telegramId}`, JSON.stringify(newClaimedRewards))
         
-        window.location.reload()
+        if (onRewardClaimed) {
+          await onRewardClaimed()
+        }
       }
     } catch (error) {
       console.error('Ödül alınamadı:', error)
+    } finally {
+      setIsProcessing(false)
     }
   }
 
@@ -211,9 +228,13 @@ const EarnView = ({ user }) => {
             <button
               onClick={() => handleSocialClick(platform)}
               className={`social-button ${claimedRewards[platform.name] ? 'claimed' : ''}`}
-              disabled={claimedRewards[platform.name]}
+              disabled={claimedRewards[platform.name] || isProcessing}
+              style={{
+                backgroundColor: claimedRewards[platform.name] ? '#2c3e50' : '',
+                cursor: claimedRewards[platform.name] || isProcessing ? 'not-allowed' : 'pointer'
+              }}
             >
-              {claimedRewards[platform.name] ? 'Alındı' : 'Takip Et & Kazan'}
+              {claimedRewards[platform.name] ? 'Alındı' : isProcessing ? 'İşleniyor...' : 'Takip Et & Kazan'}
             </button>
           </div>
         ))}
