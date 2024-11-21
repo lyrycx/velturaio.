@@ -3,13 +3,15 @@
 import { useState, useEffect } from 'react'
 
 const Header = ({ user, showSettings, setShowSettings }) => {
+  if (!user) return null
+  
   return (
     <header className="game-header">
       <div className="user-info">
-        <div className="avatar">{user?.firstName?.[0] || '👤'}</div>
+        <div className="avatar">{user.firstName?.[0] || user.username?.[0] || '👤'}</div>
         <div className="user-details">
-          <h2>{user?.firstName || user?.username || 'Crypto Miner'}</h2>
-          <p>{user?.points?.toLocaleString() || '0'} VLT</p>
+          <h2>{user.firstName || user.username}</h2>
+          <p>{user.points?.toLocaleString() || '0'} VLT</p>
         </div>
       </div>
       <button onClick={() => setShowSettings(!showSettings)} className="settings-button">⚙️</button>
@@ -22,6 +24,8 @@ const HomeView = ({ user, handleMining, isRotating, miningStreak, autoBoostLevel
   const miningIconUrl = "https://r.resimlink.com/vXD2MproiNHm.png"
 
   const handleMiningClick = (e) => {
+    if (!user) return
+    
     const rect = e.currentTarget.getBoundingClientRect()
     const x = e.clientX - rect.left
     const y = e.clientY - rect.top
@@ -81,6 +85,8 @@ const HomeView = ({ user, handleMining, isRotating, miningStreak, autoBoostLevel
 }
 
 const BoostView = ({ user, autoBoostLevel, handleBoostUpgrade }) => {
+  const [isProcessing, setIsProcessing] = useState(false)
+  
   const boosts = [
     { level: 1, cost: 1000, multiplier: 2 },
     { level: 2, cost: 5000, multiplier: 5 },
@@ -89,13 +95,14 @@ const BoostView = ({ user, autoBoostLevel, handleBoostUpgrade }) => {
     { level: 5, cost: 500000, multiplier: 50 }
   ]
 
-  const [isProcessing, setIsProcessing] = useState(false)
-
   const handleUpgrade = async (level, cost) => {
     if (isProcessing) return
     setIsProcessing(true)
-    await handleBoostUpgrade(level, cost)
-    setIsProcessing(false)
+    try {
+      await handleBoostUpgrade(level, cost)
+    } finally {
+      setIsProcessing(false)
+    }
   }
 
   return (
@@ -149,8 +156,8 @@ const FriendsView = ({ user, handleShare }) => {
 
 const EarnView = ({ user, onRewardClaimed }) => {
   const [claimedRewards, setClaimedRewards] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem(`claimedRewards_${user?.telegramId}`)
+    if (typeof window !== 'undefined' && user?.telegramId) {
+      const saved = localStorage.getItem(`claimedRewards_${user.telegramId}`)
       return saved ? JSON.parse(saved) : {}
     }
     return {}
@@ -209,8 +216,6 @@ const EarnView = ({ user, onRewardClaimed }) => {
           await onRewardClaimed()
         }
       }
-    } catch (error) {
-      console.error('Ödül alınamadı:', error)
     } finally {
       setIsProcessing(false)
     }
@@ -278,7 +283,7 @@ const Navigation = ({ currentView, setCurrentView }) => {
   )
 }
 
-const SettingsModal = ({ onClose, user }) => {
+const SettingsModal = ({ onClose }) => {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={e => e.stopPropagation()}>
@@ -287,8 +292,8 @@ const SettingsModal = ({ onClose, user }) => {
           <div className="setting-item">
             <span>Dil</span>
             <select defaultValue="tr">
-              <option value="en">English</option>
               <option value="tr">Türkçe</option>
+              <option value="en">English</option>
             </select>
           </div>
           <div className="setting-item">

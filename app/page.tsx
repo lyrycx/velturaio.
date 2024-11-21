@@ -24,6 +24,7 @@ export default function Home() {
   const [autoBoostLevel, setAutoBoostLevel] = useState(1)
   const [lastMiningTime, setLastMiningTime] = useState(0)
   const [isMining, setIsMining] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
 
   const fetchUserData = useCallback(async () => {
     const telegram = window.Telegram.WebApp
@@ -38,8 +39,8 @@ export default function Home() {
         setUser(userData)
         setAutoBoostLevel(userData.autoBoostLevel)
       }
-    } catch (error) {
-      console.error('Kullanıcı yüklenemedi:', error)
+    } finally {
+      setIsLoading(false)
     }
   }, [])
 
@@ -118,6 +119,8 @@ export default function Home() {
     const telegram = window.Telegram.WebApp
     telegram.switchInlineQuery(`Veltura Mining'e katıl! Referans linkimi kullan: https://t.me/VelturaMiningBot?start=${user?.telegramId}`)
   }
+
+  if (isLoading) return null
 
   return (
     <main className="game-container">
