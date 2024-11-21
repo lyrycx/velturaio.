@@ -17,8 +17,7 @@ export async function POST(req: NextRequest) {
     const referrer = await prisma.user.update({
       where: { telegramId: referrerId },
       data: {
-        points: { increment: 50000 },
-        referralCount: { increment: 1 }
+        points: { increment: 50000 }
       }
     })
 
