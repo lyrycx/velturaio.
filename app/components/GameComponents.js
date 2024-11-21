@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, memo } from 'react'
 
-const Header = ({ user, showSettings, setShowSettings }) => {
-  if (!user) return null
+const Header = memo(({ user, showSettings, setShowSettings }) => {
+  if (!user?.firstName && !user?.username) return null
   
   return (
     <header className="game-header">
@@ -11,19 +11,29 @@ const Header = ({ user, showSettings, setShowSettings }) => {
         <div className="avatar">{user.firstName?.[0] || user.username?.[0] || '👤'}</div>
         <div className="user-details">
           <h2>{user.firstName || user.username}</h2>
-          <p>{user.points?.toLocaleString() || '0'} VLT</p>
+          <p>{user.points?.toLocaleString()} VLT</p>
         </div>
       </div>
       <button onClick={() => setShowSettings(!showSettings)} className="settings-button">⚙️</button>
     </header>
   )
-}
+})
 
-const HomeView = ({ user, handleMining, isRotating, miningStreak, autoBoostLevel }) => {
+const HomeView = memo(({ user, handleMining, isRotating, miningStreak, autoBoostLevel }) => {
   const [miningPoints, setMiningPoints] = useState([])
+  const [localPoints, setLocalPoints] = useState(user?.points || 0)
+  const [lastClickTime, setLastClickTime] = useState(0)
   const miningIconUrl = "https://r.resimlink.com/vXD2MproiNHm.png"
 
-  const handleMiningClick = (e) => {
+  useEffect(() => {
+    setLocalPoints(user?.points || 0)
+  }, [user?.points])
+
+  const handleMiningClick = useCallback((e) => {
+    const now = Date.now()
+    if (now - lastClickTime < 200) return
+    setLastClickTime(now)
+
     if (!user) return
     
     const rect = e.currentTarget.getBoundingClientRect()
@@ -35,15 +45,17 @@ const HomeView = ({ user, handleMining, isRotating, miningStreak, autoBoostLevel
       x,
       y,
       points: `+${points} VLT`,
-      id: Date.now()
+      id: now
     }])
+
+    setLocalPoints(prev => prev + points)
 
     setTimeout(() => {
       setMiningPoints(prev => prev.slice(1))
     }, 1000)
 
     handleMining()
-  }
+  }, [user, autoBoostLevel, handleMining, lastClickTime])
 
   return (
     <div className="home-view">
@@ -54,7 +66,7 @@ const HomeView = ({ user, handleMining, isRotating, miningStreak, autoBoostLevel
         </div>
         <div className="stat-item">
           <span className="stat-label">VLT Bakiye</span>
-          <span className="stat-value">{user?.points?.toLocaleString() || '0'} VLT</span>
+          <span className="stat-value">{localPoints.toLocaleString()} VLT</span>
         </div>
       </div>
       <div className="crystal-container">
@@ -82,9 +94,9 @@ const HomeView = ({ user, handleMining, isRotating, miningStreak, autoBoostLevel
       </div>
     </div>
   )
-}
+})
 
-const BoostView = ({ user, autoBoostLevel, handleBoostUpgrade }) => {
+const BoostView = memo(({ user, autoBoostLevel, handleBoostUpgrade }) => {
   const [isProcessing, setIsProcessing] = useState(false)
   
   const boosts = [
@@ -127,9 +139,9 @@ const BoostView = ({ user, autoBoostLevel, handleBoostUpgrade }) => {
       </div>
     </div>
   )
-}
+})
 
-const FriendsView = ({ user, handleShare }) => {
+const FriendsView = memo(({ user, handleShare }) => {
   return (
     <div className="friends-view">
       <div className="referral-stats">
@@ -152,9 +164,9 @@ const FriendsView = ({ user, handleShare }) => {
       </div>
     </div>
   )
-}
+})
 
-const EarnView = ({ user, onRewardClaimed }) => {
+const EarnView = memo(({ user, onRewardClaimed }) => {
   const [claimedRewards, setClaimedRewards] = useState(() => {
     if (typeof window !== 'undefined' && user?.telegramId) {
       const saved = localStorage.getItem(`claimedRewards_${user.telegramId}`)
@@ -246,9 +258,9 @@ const EarnView = ({ user, onRewardClaimed }) => {
       </div>
     </div>
   )
-}
+})
 
-const Navigation = ({ currentView, setCurrentView }) => {
+const Navigation = memo(({ currentView, setCurrentView }) => {
   return (
     <nav className="navigation">
       <button
@@ -281,9 +293,9 @@ const Navigation = ({ currentView, setCurrentView }) => {
       </button>
     </nav>
   )
-}
+})
 
-const SettingsModal = ({ onClose }) => {
+const SettingsModal = memo(({ onClose }) => {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={e => e.stopPropagation()}>
@@ -308,7 +320,15 @@ const SettingsModal = ({ onClose }) => {
       </div>
     </div>
   )
-}
+})
+
+Header.displayName = 'Header'
+HomeView.displayName = 'HomeView'
+BoostView.displayName = 'BoostView'
+FriendsView.displayName = 'FriendsView'
+EarnView.displayName = 'EarnView'
+Navigation.displayName = 'Navigation'
+SettingsModal.displayName = 'SettingsModal'
 
 export {
   Header,

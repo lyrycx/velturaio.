@@ -1,13 +1,20 @@
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 
-export async function POST(req) {
+export async function POST(req: NextRequest) {
   try {
     const data = await req.json()
     const { telegramId, referrerId } = data
 
-    // Update referrer's stats
-    const updatedReferrer = await prisma.user.update({
+    const user = await prisma.user.update({
+      where: { telegramId },
+      data: {
+        points: { increment: 50000 }
+      }
+    })
+
+    const referrer = await prisma.user.update({
       where: { telegramId: referrerId },
       data: {
         points: { increment: 50000 },
@@ -15,9 +22,8 @@ export async function POST(req) {
       }
     })
 
-    return NextResponse.json(updatedReferrer)
+    return NextResponse.json({ user, referrer })
   } catch (error) {
-    console.error('Failed to process referral:', error)
-    return NextResponse.json({ error: 'Failed to process referral' }, { status: 500 })
+    return NextResponse.json({ error: 'Referral işlemi başarısız' }, { status: 500 })
   }
 }
