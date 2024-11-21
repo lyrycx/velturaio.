@@ -10,8 +10,7 @@ export async function POST(req: NextRequest) {
     const user = await prisma.user.update({
       where: { telegramId },
       data: {
-        points: { increment: 50000 },
-        lastSeen: new Date()
+        points: { increment: 50000 }
       }
     })
 
@@ -19,8 +18,7 @@ export async function POST(req: NextRequest) {
       where: { telegramId: referrerId },
       data: {
         points: { increment: 50000 },
-        referralCount: { increment: 1 },
-        lastSeen: new Date()
+        referralCount: { increment: 1 }
       }
     })
 
