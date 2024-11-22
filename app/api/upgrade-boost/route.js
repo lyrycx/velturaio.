@@ -17,8 +17,7 @@ export async function POST(req) {
       where: { telegramId },
       data: {
         points: { decrement: cost },
-        autoBoostLevel: level,
-        lastSeen: new Date()
+        autoBoostLevel: level
       }
     })
 

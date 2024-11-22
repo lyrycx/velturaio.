@@ -19,43 +19,38 @@ const Header = memo(({ user, showSettings, setShowSettings }) => {
   )
 })
 
-const HomeView = memo(({ user, handleMining, isRotating, miningStreak, autoBoostLevel }) => {
-  const [miningPoints, setMiningPoints] = useState([])
-  const [localPoints, setLocalPoints] = useState(user?.points || 0)
-  const [lastClickTime, setLastClickTime] = useState(0)
-  const miningIconUrl = "https://r.resimlink.com/vXD2MproiNHm.png"
 
+const HomeView = memo(({ user, handleMining, isRotating, autoBoostLevel }) => {
+  const [localPoints, setLocalPoints] = useState(user?.points || 0)
+  const [miningPoints, setMiningPoints] = useState([])
+  const [canMine, setCanMine] = useState(true)
+  
   useEffect(() => {
     setLocalPoints(user?.points || 0)
   }, [user?.points])
 
-  const handleMiningClick = useCallback((e) => {
-    const now = Date.now()
-    if (now - lastClickTime < 200) return
-    setLastClickTime(now)
-
-    if (!user) return
+  const handleMiningClick = useCallback(async (e) => {
+    if (!canMine) return
+    setCanMine(false)
+    
+    const points = autoBoostLevel * 2
+    setLocalPoints(prev => prev + points)
     
     const rect = e.currentTarget.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    const y = e.clientY - rect.top
-   
-    const points = autoBoostLevel * 2
     setMiningPoints(prev => [...prev, {
-      x,
-      y,
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
       points: `+${points} VLT`,
-      id: now
+      id: Date.now()
     }])
 
-    setLocalPoints(prev => prev + points)
-
+    await handleMining()
+    
     setTimeout(() => {
+      setCanMine(true)
       setMiningPoints(prev => prev.slice(1))
-    }, 1000)
-
-    handleMining()
-  }, [user, autoBoostLevel, handleMining, lastClickTime])
+    }, 200)
+  }, [autoBoostLevel, handleMining])
 
   return (
     <div className="home-view">

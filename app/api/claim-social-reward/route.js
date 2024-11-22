@@ -5,25 +5,15 @@ export async function POST(req) {
   try {
     const { telegramId, platform, reward } = await req.json()
 
-    const user = await prisma.user.findUnique({
-      where: { telegramId }
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'Kullanıcı bulunamadı' }, { status: 404 })
-    }
-
-    const updatedUser = await prisma.user.update({
+    const user = await prisma.user.update({
       where: { telegramId },
       data: {
-        points: { increment: reward },
-        lastSeen: new Date()
+        points: { increment: reward }
       }
     })
 
-    return NextResponse.json(updatedUser)
+    return NextResponse.json(user)
   } catch (error) {
-    console.error('Sosyal medya ödülü hatası:', error)
-    return NextResponse.json({ error: 'İşlem başarısız' }, { status: 500 })
+    return NextResponse.json({ error: 'Ödül alma başarısız' }, { status: 500 })
   }
 }
