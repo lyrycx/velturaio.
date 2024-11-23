@@ -26,8 +26,8 @@ This Telegram Mini App showcases:
 
 1. Clone the repository:
    ```
-   git clone https://github.com/nikandr-surkov/Make-TON-Telegram-Mini-App-5.git
-   cd Make-TON-Telegram-Mini-App-5
+   git clone https://github.com/lyrycx/veltura.io
+   cd velturacrypto
    ```
 
 2. Install dependencies:
@@ -38,7 +38,7 @@ This Telegram Mini App showcases:
 3. Set up your environment variables:
    Create a `.env` file in the root directory and add your MongoDB connection string:
    ```
-   DATABASE_URL="your_mongodb_connection_string"
+   DATABASE_URL="mongodb+srv://erenoiz2w1:HN6zAWz5FmLvLz5g@veltura.oyzyg.mongodb.net/veltura_database?retryWrites=true&w=majority&appName=VELTURA"
    ```
 
 4. Generate Prisma client:
