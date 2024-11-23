@@ -19,11 +19,11 @@ const Header = memo(({ user, showSettings, setShowSettings }) => {
   )
 })
 
-
 const HomeView = memo(({ user, handleMining, isRotating, autoBoostLevel }) => {
   const [localPoints, setLocalPoints] = useState(user?.points || 0)
   const [miningPoints, setMiningPoints] = useState([])
   const [canMine, setCanMine] = useState(true)
+  const miningIconUrl = "https://r.resimlink.com/vXD2MproiNHm.png"
   
   useEffect(() => {
     setLocalPoints(user?.points || 0)
@@ -50,7 +50,7 @@ const HomeView = memo(({ user, handleMining, isRotating, autoBoostLevel }) => {
       setCanMine(true)
       setMiningPoints(prev => prev.slice(1))
     }, 200)
-  }, [autoBoostLevel, handleMining])
+  }, [autoBoostLevel, handleMining, canMine])
 
   return (
     <div className="home-view">
@@ -69,6 +69,7 @@ const HomeView = memo(({ user, handleMining, isRotating, autoBoostLevel }) => {
           onClick={handleMiningClick}
           className={`mining-button ${isRotating ? 'pulse' : ''}`}
           style={{ touchAction: 'manipulation' }}
+          disabled={!canMine}
         >
           <div className="mining-circle">
             <img src={miningIconUrl} alt="Veltura" className="mining-image" />
@@ -93,7 +94,12 @@ const HomeView = memo(({ user, handleMining, isRotating, autoBoostLevel }) => {
 
 const BoostView = memo(({ user, autoBoostLevel, handleBoostUpgrade }) => {
   const [isProcessing, setIsProcessing] = useState(false)
+  const [localPoints, setLocalPoints] = useState(user?.points || 0)
   
+  useEffect(() => {
+    setLocalPoints(user?.points || 0)
+  }, [user?.points])
+
   const boosts = [
     { level: 1, cost: 1000, multiplier: 2 },
     { level: 2, cost: 5000, multiplier: 5 },
@@ -103,10 +109,12 @@ const BoostView = memo(({ user, autoBoostLevel, handleBoostUpgrade }) => {
   ]
 
   const handleUpgrade = async (level, cost) => {
-    if (isProcessing) return
+    if (isProcessing || !user || localPoints < cost) return
     setIsProcessing(true)
+    
     try {
       await handleBoostUpgrade(level, cost)
+      setLocalPoints(prev => prev - cost)
     } finally {
       setIsProcessing(false)
     }
@@ -123,7 +131,7 @@ const BoostView = memo(({ user, autoBoostLevel, handleBoostUpgrade }) => {
               <span className="multiplier">×{boost.multiplier}</span>
               <button
                 onClick={() => handleUpgrade(boost.level, boost.cost)}
-                disabled={autoBoostLevel >= boost.level || (user?.points || 0) < boost.cost || isProcessing}
+                disabled={autoBoostLevel >= boost.level || localPoints < boost.cost || isProcessing}
                 className="upgrade-button"
               >
                 {autoBoostLevel >= boost.level ? 'Sahipsin' : `${boost.cost.toLocaleString()} VLT`}
@@ -171,6 +179,11 @@ const EarnView = memo(({ user, onRewardClaimed }) => {
   })
 
   const [isProcessing, setIsProcessing] = useState(false)
+  const [localPoints, setLocalPoints] = useState(user?.points || 0)
+
+  useEffect(() => {
+    setLocalPoints(user?.points || 0)
+  }, [user?.points])
 
   const socialMedia = [
     {
@@ -197,7 +210,6 @@ const EarnView = memo(({ user, onRewardClaimed }) => {
     if (!user?.telegramId || isProcessing || claimedRewards[platform.name]) return
     
     setIsProcessing(true)
-    
     try {
       window.open(platform.url, '_blank')
       
@@ -218,6 +230,7 @@ const EarnView = memo(({ user, onRewardClaimed }) => {
         }
         setClaimedRewards(newClaimedRewards)
         localStorage.setItem(`claimedRewards_${user.telegramId}`, JSON.stringify(newClaimedRewards))
+        setLocalPoints(prev => prev + platform.reward)
         
         if (onRewardClaimed) {
           await onRewardClaimed()

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, memo } from 'react'
 import { Header, HomeView, BoostView, FriendsView, EarnView, Navigation, SettingsModal } from './components/GameComponents'
 
 interface User {
@@ -14,6 +14,15 @@ interface User {
   autoBoostLevel: number
   lastSeen: Date
 }
+
+// Memo ile optimize edilmiş bileşenler
+const MemoizedHeader = memo(Header)
+const MemoizedHomeView = memo(HomeView)
+const MemoizedBoostView = memo(BoostView)
+const MemoizedFriendsView = memo(FriendsView)
+const MemoizedEarnView = memo(EarnView)
+const MemoizedNavigation = memo(Navigation)
+const MemoizedSettingsModal = memo(SettingsModal)
 
 export default function Home() {
   const [user, setUser] = useState<User | null>(null)
@@ -54,7 +63,7 @@ export default function Home() {
     return () => clearInterval(keepAlive)
   }, [fetchUserData])
 
-  const handleMining = async () => {
+  const handleMining = useCallback(async () => {
     if (!user?.telegramId || isMining) return
 
     const currentTime = Date.now()
@@ -81,16 +90,16 @@ export default function Home() {
         setMiningStreak(prev => (prev + 1) % 5)
       }
     } catch (error) {
-      console.error('Mining başarısız:', error)
+      console.error('Mining error:', error)
     } finally {
       setTimeout(() => {
         setIsRotating(false)
         setIsMining(false)
       }, 100)
     }
-  }
+  }, [user?.telegramId, isMining, lastMiningTime, autoBoostLevel])
 
-  const handleBoostUpgrade = async (level: number, cost: number) => {
+  const handleBoostUpgrade = useCallback(async (level: number, cost: number) => {
     if (!user?.telegramId || user.points < cost || autoBoostLevel >= level) return
 
     try {
@@ -111,22 +120,26 @@ export default function Home() {
         await fetchUserData()
       }
     } catch (error) {
-      console.error('Yükseltme başarısız:', error)
+      console.error('Upgrade error:', error)
     }
-  }
+  }, [user?.telegramId, user?.points, autoBoostLevel, fetchUserData])
 
-  const handleShare = () => {
+  const handleShare = useCallback(() => {
     const telegram = window.Telegram.WebApp
-    telegram.switchInlineQuery(`Veltura Mining'e katıl! Referans linkimi kullan: https://t.me/VelturaMiningBot?start=${user?.telegramId}`)
-  }
+    telegram.switchInlineQuery(`Join Veltura Mining! Use my referral link: https://t.me/VelturaMiningBot?start=${user?.telegramId}`)
+  }, [user?.telegramId])
 
   if (isLoading) return null
 
   return (
     <main className="game-container">
-      <Header user={user} showSettings={showSettings} setShowSettings={setShowSettings} />
+      <MemoizedHeader 
+        user={user} 
+        showSettings={showSettings} 
+        setShowSettings={setShowSettings} 
+      />
       {currentView === 'home' && (
-        <HomeView
+        <MemoizedHomeView
           user={user}
           handleMining={handleMining}
           isRotating={isRotating}
@@ -135,16 +148,34 @@ export default function Home() {
         />
       )}
       {currentView === 'boost' && (
-        <BoostView
+        <MemoizedBoostView
           user={user}
           autoBoostLevel={autoBoostLevel}
           handleBoostUpgrade={handleBoostUpgrade}
         />
       )}
-      {currentView === 'friends' && <FriendsView user={user} handleShare={handleShare} />}
-      {currentView === 'earn' && <EarnView user={user} onRewardClaimed={fetchUserData} />}
-      <Navigation currentView={currentView} setCurrentView={setCurrentView} />
-      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} user={user} />}
+      {currentView === 'friends' && (
+        <MemoizedFriendsView 
+          user={user} 
+          handleShare={handleShare} 
+        />
+      )}
+      {currentView === 'earn' && (
+        <MemoizedEarnView 
+          user={user} 
+          onRewardClaimed={fetchUserData} 
+        />
+      )}
+      <MemoizedNavigation 
+        currentView={currentView} 
+        setCurrentView={setCurrentView} 
+      />
+      {showSettings && (
+        <MemoizedSettingsModal 
+          onClose={() => setShowSettings(false)} 
+          user={user} 
+        />
+      )}
     </main>
   )
 }
