@@ -3,17 +3,17 @@ import { NextResponse } from 'next/server'
 
 export async function POST(req) {
   try {
-    const data = await req.json()
-    const telegramId = data.telegramId
-
+    const { telegramId } = await req.json()
+    
     const user = await prisma.user.update({
       where: { telegramId },
-      data: { lastSeen: new Date() }
+      data: {
+        updatedAt: new Date()
+      }
     })
 
     return NextResponse.json(user)
   } catch (error) {
-    console.error('Keep-alive failed:', error)
-    return NextResponse.json({ error: 'Keep-alive failed' }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to update user activity' }, { status: 500 })
   }
 }
