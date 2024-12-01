@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, memo } from 'react'
+import { useEffect, useState, useCallback, memo, Dispatch, SetStateAction } from 'react'
 import { Header, HomeView, BoostView, FriendsView, EarnView, Navigation, SettingsModal } from './components/GameComponents'
 
 interface User {
@@ -12,17 +12,78 @@ interface User {
   points: number
   referralCount: number
   autoBoostLevel: number
-  lastSeen: Date
+  updatedAt: Date
 }
 
-// Memo ile optimize edilmiş bileşenler
-const MemoizedHeader = memo(Header)
-const MemoizedHomeView = memo(HomeView)
-const MemoizedBoostView = memo(BoostView)
-const MemoizedFriendsView = memo(FriendsView)
-const MemoizedEarnView = memo(EarnView)
-const MemoizedNavigation = memo(Navigation)
-const MemoizedSettingsModal = memo(SettingsModal)
+interface HeaderProps {
+  user: User | null
+  showSettings: boolean
+  setShowSettings: Dispatch<SetStateAction<boolean>>
+}
+
+interface HomeViewProps {
+  user: User | null
+  handleMining: () => Promise<void>
+  isRotating: boolean
+  miningStreak: number
+  autoBoostLevel: number
+}
+
+interface BoostViewProps {
+  user: User | null
+  autoBoostLevel: number
+  handleBoostUpgrade: (level: number, cost: number) => Promise<void>
+}
+
+interface FriendsViewProps {
+  user: User | null
+  handleShare: () => void
+}
+
+interface EarnViewProps {
+  user: User | null
+  onRewardClaimed: () => Promise<void>
+}
+
+interface NavigationProps {
+  currentView: string
+  setCurrentView: Dispatch<SetStateAction<string>>
+}
+
+interface SettingsModalProps {
+  onClose: () => void
+  user: User | null
+}
+
+interface TelegramWebApp {
+  ready: () => void
+  expand: () => void
+  switchInlineQuery: (query: string) => void
+  initDataUnsafe: {
+    user?: {
+      id: number
+      username?: string
+      first_name?: string
+      last_name?: string
+    }
+  }
+}
+
+declare global {
+  interface Window {
+    Telegram: {
+      WebApp: TelegramWebApp
+    }
+  }
+}
+
+const MemoizedHeader = memo<HeaderProps>(Header)
+const MemoizedHomeView = memo<HomeViewProps>(HomeView)
+const MemoizedBoostView = memo<BoostViewProps>(BoostView)
+const MemoizedFriendsView = memo<FriendsViewProps>(FriendsView)
+const MemoizedEarnView = memo<EarnViewProps>(EarnView)
+const MemoizedNavigation = memo<NavigationProps>(Navigation)
+const MemoizedSettingsModal = memo<SettingsModalProps>(SettingsModal)
 
 export default function Home() {
   const [user, setUser] = useState<User | null>(null)
@@ -133,10 +194,10 @@ export default function Home() {
 
   return (
     <main className="game-container">
-      <MemoizedHeader 
-        user={user} 
-        showSettings={showSettings} 
-        setShowSettings={setShowSettings} 
+      <MemoizedHeader
+        user={user}
+        showSettings={showSettings}
+        setShowSettings={setShowSettings}
       />
       {currentView === 'home' && (
         <MemoizedHomeView
@@ -155,25 +216,25 @@ export default function Home() {
         />
       )}
       {currentView === 'friends' && (
-        <MemoizedFriendsView 
-          user={user} 
-          handleShare={handleShare} 
+        <MemoizedFriendsView
+          user={user}
+          handleShare={handleShare}
         />
       )}
       {currentView === 'earn' && (
-        <MemoizedEarnView 
-          user={user} 
-          onRewardClaimed={fetchUserData} 
+        <MemoizedEarnView
+          user={user}
+          onRewardClaimed={fetchUserData}
         />
       )}
-      <MemoizedNavigation 
-        currentView={currentView} 
-        setCurrentView={setCurrentView} 
+      <MemoizedNavigation
+        currentView={currentView}
+        setCurrentView={setCurrentView}
       />
       {showSettings && (
-        <MemoizedSettingsModal 
-          onClose={() => setShowSettings(false)} 
-          user={user} 
+        <MemoizedSettingsModal
+          onClose={() => setShowSettings(false)}
+          user={user}
         />
       )}
     </main>
