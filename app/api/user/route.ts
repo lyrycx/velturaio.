@@ -1,40 +1,45 @@
 import { prisma } from '@/lib/prisma'
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 
-export async function POST(req) {
+export async function POST(req: NextRequest) {
   try {
-    const data = await req.json()
-    const { id, username, first_name, last_name } = data
-
-    if (!id) {
-      return NextResponse.json({ error: 'Telegram ID is required' }, { status: 400 })
+    const body = await req.text()
+    
+    // Parse the request body safely
+    let userData
+    try {
+      userData = JSON.parse(body)
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON data' }, { status: 400 })
     }
 
+    // Validate required fields
+    if (!userData?.id) {
+      return NextResponse.json({ error: 'Missing required user data' }, { status: 400 })
+    }
+
+    // Create or update user
     const user = await prisma.user.upsert({
-      where: { 
-        telegramId: id 
-      },
-      update: { 
-        lastSeen: new Date(),
-        username: username || '',
-        firstName: first_name || '',
-        lastName: last_name || ''
+      where: { telegramId: userData.id },
+      update: {
+        username: userData.username || '',
+        firstName: userData.first_name || '',
+        lastName: userData.last_name || ''
       },
       create: {
-        telegramId: id,
-        username: username || '',
-        firstName: first_name || '',
-        lastName: last_name || '',
+        telegramId: userData.id,
+        username: userData.username || '',
+        firstName: userData.first_name || '',
+        lastName: userData.last_name || '',
         points: 0,
         referralCount: 0,
-        autoBoostLevel: 1,
-        lastSeen: new Date()
+        autoBoostLevel: 1
       }
     })
 
-    return NextResponse.json(user)
+    return NextResponse.json({ success: true, user })
   } catch (error) {
-    console.error('Failed to process user:', error)
+    console.error('User processing error:', error)
     return NextResponse.json({ error: 'Failed to process user' }, { status: 500 })
   }
 }
